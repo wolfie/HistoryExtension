@@ -13,6 +13,7 @@ import org.json.JSONObject;
 import com.github.wolfie.history.HistoryExtension;
 import com.github.wolfie.history.HistoryExtension.PopStateEvent;
 import com.github.wolfie.history.HistoryExtension.PopStateListener;
+import com.vaadin.annotations.Title;
 import com.vaadin.annotations.VaadinServletConfiguration;
 import com.vaadin.event.ShortcutAction.KeyCode;
 import com.vaadin.event.ShortcutListener;
@@ -28,6 +29,7 @@ import com.vaadin.ui.UI;
 import com.vaadin.ui.VerticalLayout;
 
 @SuppressWarnings("serial")
+@Title("Simplified HTML5 History Demo")
 public class SimpleHistoryUI extends UI {
 
     @WebServlet(urlPatterns = { "/simple/*" }, asyncSupported = true)

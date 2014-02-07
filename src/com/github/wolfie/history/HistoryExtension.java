@@ -12,6 +12,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import com.github.wolfie.history.HistoryExtension.ErrorEvent.Type;
+import com.sun.xml.internal.txw2.IllegalAnnotationException;
 import com.vaadin.annotations.JavaScript;
 import com.vaadin.server.AbstractClientConnector;
 import com.vaadin.server.AbstractJavaScriptExtension;
@@ -31,10 +32,18 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
             this.json = json;
         }
 
+        /**
+         * Returns the state data as an {@link JSONObject}. Never
+         * <code>null</code>.
+         */
         public JSONObject getStateAsJson() {
             return json;
         }
 
+        /**
+         * Returns the state data as an <strong>unmodifiable</strong>
+         * {@link Map Map<String, String>}. Never <code>null</code>.
+         */
         public Map<String, String> getStateAsMap() {
             if (map == null) {
                 final LinkedHashMap<String, String> tempMap = new LinkedHashMap<String, String>();
@@ -53,26 +62,62 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
             return map;
         }
 
+        /**
+         * Returns the {@link HistoryExtension} instance from which this event
+         * was fired.
+         */
         public HistoryExtension getSource() {
             return HistoryExtension.this;
         }
     }
 
+    /**
+     * An interface that allows external code to listen to browser history
+     * changes.
+     * 
+     * @see HistoryExtension#addPopStateListener(PopStateListener)
+     * @see HistoryExtension#removePopStateListener(PopStateListener)
+     */
     public static interface PopStateListener {
+        /**
+         * A state was popped off the browser's history stack
+         * 
+         * @param event
+         *            The event object describing the application state
+         * @see HistoryExtension#pushState(JSONObject, String)
+         * @see HistoryExtension#pushState(Map, String)
+         */
         void popState(PopStateEvent event);
     }
 
+    /**
+     * An event that carries information about an error that occurred on the
+     * client side.
+     * <p>
+     * <em>Note:</em> if an ErrorEvent is not {@link #cancel() cancelled},
+     * {@link HistoryExtension} will raise a runtime exception.
+     * 
+     * @see #cancel()
+     */
     public static class ErrorEvent {
         public enum Type {
-            UNSUPPORTED, METHOD_INVOKE
+            /**
+             * HTML 5 history functionality is unsupported by the user's
+             * browser.
+             */
+            UNSUPPORTED,
+
+            /** A client-side error occurred when trying to execute the command. */
+            METHOD_INVOKE
         }
 
-        private Type type;
-        private String name;
-        private String message;
+        private final Type type;
+        private final String name;
+        private final String message;
         private boolean cancelled;
 
-        public ErrorEvent(Type type, String name, String message) {
+        public ErrorEvent(final Type type, final String name,
+                final String message) {
             this.type = type;
             this.name = name;
             this.message = message;
@@ -90,15 +135,32 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
             return message;
         }
 
+        /**
+         * TODO
+         * 
+         * @see #isCancelled()
+         */
         public void cancel() {
             cancelled = true;
         }
 
+        /**
+         * TODO
+         * 
+         * @return
+         * @see #cancel()
+         */
         public boolean isCancelled() {
             return cancelled;
         }
     }
 
+    /**
+     * TODO
+     * 
+     * @see HistoryExtension#addErrorListener(ErrorListener)
+     * @see HistoryExtension#removeErrorListener(ErrorListener)
+     */
     public static interface ErrorListener {
         void onError(ErrorEvent event);
     }
@@ -106,13 +168,35 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
     private final List<PopStateListener> popListeners = new ArrayList<PopStateListener>();
     private final List<ErrorListener> errorListeners = new ArrayList<ErrorListener>();
 
+    /**
+     * A flag that is set <em>asynchronously</em>. It denotes whether the
+     * browser supports HTML 5 history manipulation or not.
+     * 
+     * @see ErrorEvent.Type#UNSUPPORTED
+     */
     private boolean unsupported = false;
 
+    /**
+     * A convenience method to extend a UI with a properly configured
+     * {@link HistoryExtension}.
+     */
     public static HistoryExtension extend(final UI ui,
             final PopStateListener listener) {
         final HistoryExtension extension = new HistoryExtension();
         extension.addPopStateListener(listener);
         extension.extend(ui);
+        return extension;
+    }
+
+    /**
+     * A convenience method to extend a UI with a properly configured
+     * {@link HistoryExtension}.
+     */
+    public static HistoryExtension extend(final UI ui,
+            final PopStateListener popStateListener,
+            final ErrorListener errorListener) {
+        final HistoryExtension extension = extend(ui, popStateListener);
+        extension.addErrorListener(errorListener);
         return extension;
     }
 
@@ -122,7 +206,8 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
             public void call(final JSONArray arguments) throws JSONException {
                 if (arguments.length() > 0) {
                     try {
-                        JSONObject jsonObject = arguments.getJSONObject(0);
+                        final JSONObject jsonObject = arguments
+                                .getJSONObject(0);
                         fireListeners(jsonObject);
                     } catch (final JSONException e) {
                         arguments.toString();
@@ -135,7 +220,7 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
             @Override
             public void call(final JSONArray arguments) throws JSONException {
                 final int errorType = arguments.getInt(0);
-                ErrorEvent.Type type = ErrorEvent.Type.values()[errorType];
+                final ErrorEvent.Type type = ErrorEvent.Type.values()[errorType];
                 final String name = arguments.getString(1);
                 final String message = arguments.getString(2);
 
@@ -145,29 +230,57 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
         });
     }
 
-    @SuppressWarnings("cast")
     public void extend(final UI ui) {
-        super.extend((AbstractClientConnector) ui);
+        @SuppressWarnings("cast")
+        final AbstractClientConnector acc = (AbstractClientConnector) ui;
+        super.extend(acc);
     }
 
+    /**
+     * TODO
+     */
     public void back() {
         callFunction("back");
     }
 
+    /**
+     * TODO
+     */
     public void forward() {
         callFunction("forward");
     }
 
+    /**
+     * TODO
+     * 
+     * @param steps
+     */
     @SuppressWarnings("boxing")
     public void go(final int steps) {
         callFunction("go", steps);
     }
 
+    /**
+     * TODO
+     * 
+     * @param nextStateMap
+     * @param nextUrl
+     * @see PopStateListener
+     * @see PopStateEvent#getStateAsMap()
+     */
     public void pushState(final Map<String, String> nextStateMap,
             final String nextUrl) {
         callFunction("pushState", nextStateMap, nextUrl);
     }
 
+    /**
+     * TODO
+     * 
+     * @param nextStateJson
+     * @param nextUrl
+     * @see PopStateListener
+     * @see PopStateEvent#getStateAsMap()
+     */
     public void pushState(final JSONObject nextStateJson, final String nextUrl) {
         callFunction("pushState", nextStateJson, nextUrl);
     }
@@ -177,30 +290,74 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
         callFunction("replaceState", newStateMap, newUrl);
     }
 
-    public void replaceState(JSONObject newStateJson, String newUrl) {
+    /**
+     * TODO
+     * 
+     * @param newStateJson
+     * @param newUrl
+     * @see PopStateListener
+     * @see PopStateEvent#getStateAsMap()
+     */
+    public void replaceState(final JSONObject newStateJson, final String newUrl) {
         callFunction("replaceState", newStateJson, newUrl);
     }
 
-    public void addPopStateListener(final PopStateListener listener) {
+    /**
+     * Adds a {@link PopStateListener}
+     * 
+     * @throws IllegalArgumentException
+     *             if <code>listener</code> is <code>null</code>
+     */
+    public void addPopStateListener(final PopStateListener listener)
+            throws IllegalArgumentException {
+        if (listener == null) {
+            throw new IllegalAnnotationException("listener may not be null");
+        }
         popListeners.add(listener);
     }
 
-    public boolean removePopStateListener(PopStateListener listener) {
+    /**
+     * Removes a {@link PopStateListener}
+     * 
+     * @return <code>true</code> if the listener was successfully found and
+     *         removed, otherwise <code>false</code>
+     */
+    public boolean removePopStateListener(final PopStateListener listener) {
         return popListeners.remove(listener);
     }
 
-    public void addErrorListener(final ErrorListener listener) {
+    /**
+     * Adds an {@link ErrorListener}
+     * 
+     * @throws IllegalArgumentException
+     *             if <code>listener</code> is <code>null</code>
+     */
+    public void addErrorListener(final ErrorListener listener)
+            throws IllegalArgumentException {
+        if (listener == null) {
+            throw new IllegalAnnotationException("listener may not be null");
+        }
         errorListeners.add(listener);
     }
 
-    protected void fireListeners(JSONObject json) {
-        PopStateEvent event = new PopStateEvent(json);
+    /**
+     * Removes an {@link ErrorListener}
+     * 
+     * @return <code>true</code> if the listener was successfully found and
+     *         removed, otherwise <code>false</code>
+     */
+    public boolean removeErrorListener(final ErrorListener listener) {
+        return errorListeners.remove(listener);
+    }
+
+    private void fireListeners(final JSONObject state) {
+        final PopStateEvent event = new PopStateEvent(state);
         for (final PopStateListener listener : popListeners) {
             listener.popState(event);
         }
     }
 
-    protected void fireError(ErrorEvent e) {
+    private void fireError(final ErrorEvent e) {
         for (final ErrorListener listener : errorListeners) {
             listener.onError(e);
         }
@@ -215,7 +372,15 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
     }
 
     @Override
-    protected void callFunction(String name, Object... arguments) {
+    protected void callFunction(final String name, final Object... arguments) {
+        /*
+         * This method is overridden to stop all client-side calls if the API is
+         * not supported.
+         * 
+         * Otherwise we'd get a lot of unnecessary function calls that will
+         * simply end up failing.
+         */
+
         if (!unsupported) {
             super.callFunction(name, arguments);
         } else {

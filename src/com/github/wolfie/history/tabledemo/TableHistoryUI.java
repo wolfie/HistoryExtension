@@ -9,6 +9,7 @@ import com.github.wolfie.history.HistoryExtension;
 import com.github.wolfie.history.HistoryExtension.PopStateEvent;
 import com.github.wolfie.history.HistoryExtension.PopStateListener;
 import com.github.wolfie.history.tabledemo.TableView.TableSelectionListener;
+import com.vaadin.annotations.Title;
 import com.vaadin.annotations.VaadinServletConfiguration;
 import com.vaadin.server.VaadinRequest;
 import com.vaadin.server.VaadinServlet;
@@ -20,6 +21,7 @@ import com.vaadin.ui.TabSheet.SelectedTabChangeListener;
 import com.vaadin.ui.UI;
 
 @SuppressWarnings("serial")
+@Title("Table HTML5 History Demo")
 public class TableHistoryUI extends UI {
 
     @WebServlet(urlPatterns = { "/TableDemo/*" }, asyncSupported = true)
@@ -31,12 +33,9 @@ public class TableHistoryUI extends UI {
     protected static final String POJO_ID_KEY = "id";
     protected static final String VIEW_KEY = "view";
 
-    public static final int TABLE_VIEW_DESELECTED = -1;
-
     private static final int TABLE_VIEW_STATE_VALUE = 1;
     private static final int ABOUT_VIEW_STATE_VALUE = 2;
 
-    private MyPojo pojoToSerializeInState = null;
     private final HistoryExtension.ErrorListener historyErrorListener = new HistoryExtension.ErrorListener() {
         @Override
         public void onError(final HistoryExtension.ErrorEvent event) {
@@ -46,20 +45,24 @@ public class TableHistoryUI extends UI {
                     Notification.Type.ERROR_MESSAGE);
         }
     };
+
     private final PopStateListener popStateListener = new PopStateListener() {
         @Override
         public void popState(final PopStateEvent event) {
+            /*
+             * We could've used event.getStateAsMap as well, to get an
+             * Map<String, String> instead.
+             */
             applySerializedState(event.getStateAsJson());
+
+            System.out.println(getPage().getLocation().toString());
         }
     };
+
     private final SelectedTabChangeListener tabChangeListener = new SelectedTabChangeListener() {
         @Override
         public void selectedTabChange(SelectedTabChangeEvent event) {
             if (applyingSerializedState) {
-                /*
-                 * the table's state is changing since we're reapplying the
-                 * state. Ignore all calls during this time.
-                 */
                 return;
             }
 
@@ -94,14 +97,8 @@ public class TableHistoryUI extends UI {
         @Override
         public void tableSelectionChanged(MyPojo selectedPojo) {
             if (applyingSerializedState) {
-                /*
-                 * the table's state is changing since we're reapplying the
-                 * state. Ignore all calls during this time.
-                 */
                 return;
             }
-
-            pojoToSerializeInState = selectedPojo;
 
             if (selectedPojo != null) {
                 pushStateHelper("table/" + selectedPojo.getId() + "/");
@@ -117,6 +114,10 @@ public class TableHistoryUI extends UI {
     private final TableView tableView = new TableView(tableSelectionListener);
     private final TabSheet tabsheet = new TabSheet();
 
+    /**
+     * A flag that prevents event feedback loops when modifying internal state
+     * via {@link #applySerializedState(JSONObject)}
+     */
     private boolean applyingSerializedState = false;
 
     @Override
@@ -158,11 +159,13 @@ public class TableHistoryUI extends UI {
                 throw new IllegalStateException("unknown tab selected");
             }
 
+            MyPojo selectedPojo = tableView.getSelected();
             final int tableValueId;
-            if (pojoToSerializeInState != null) {
-                tableValueId = pojoToSerializeInState.getId();
+            if (selectedPojo != null) {
+                tableValueId = selectedPojo.getId();
             } else {
-                tableValueId = TABLE_VIEW_DESELECTED;
+                // no pojo has this id, so it'll return null when deserializing.
+                tableValueId = -1;
             }
 
             JSONObject state = new JSONObject();
@@ -175,6 +178,13 @@ public class TableHistoryUI extends UI {
         }
     }
 
+    /**
+     * Modifies the application's according to the given state object.
+     * 
+     * @param state
+     *            the state object that contains the information needed to
+     *            modify the application's state
+     */
     private void applySerializedState(JSONObject state) {
         try {
             applyingSerializedState = true;
@@ -195,7 +205,6 @@ public class TableHistoryUI extends UI {
             }
 
             tableView.select(pojoId);
-            pojoToSerializeInState = tableView.getSelected();
 
         } catch (JSONException e) {
             throw new RuntimeException(e);

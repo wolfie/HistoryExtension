@@ -16,6 +16,7 @@ public class DetailsView extends CustomComponent {
 
     public DetailsView() {
         layout.setSpacing(true);
+        layout.setMargin(true);
         setCompositionRoot(layout);
 
         Label label = new Label("Details View");

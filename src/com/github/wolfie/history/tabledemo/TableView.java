@@ -10,6 +10,12 @@ import com.vaadin.ui.Table;
 public class TableView extends CustomComponent {
 
     public interface TableSelectionListener {
+        /**
+         * The selection in the table has changed.
+         * 
+         * @param selectedPojo
+         *            The newly selected pojo
+         */
         void tableSelectionChanged(MyPojo selectedPojo);
     }
 
@@ -51,6 +57,14 @@ public class TableView extends CustomComponent {
         splitpanel.setSecondComponent(detailsView);
     }
 
+    /**
+     * Searches through the Table's Container for a pojo with a given id.
+     * 
+     * @param id
+     *            the id of pojo to return
+     * @return a {@link MyPojo} with the given id, or <code>null</code> if no
+     *         such pojo is found
+     */
     private MyPojo findPojoById(final int id) {
         @SuppressWarnings("unchecked")
         final BeanItemContainer<MyPojo> container = ((BeanItemContainer<MyPojo>) table
@@ -63,14 +77,18 @@ public class TableView extends CustomComponent {
         return null;
     }
 
-    public void display(int pojoId) {
-        detailsView.display(findPojoById(pojoId));
-    }
-
+    /**
+     * Returns the currently selected pojo in the table, or <code>null</code> if
+     * nothing is selected.
+     */
     public MyPojo getSelected() {
         return (MyPojo) table.getValue();
     }
 
+    /**
+     * Selects the pojo with the given id from the table, or removes selection
+     * if no such id is found.
+     */
     public void select(int pojoId) {
         MyPojo pojo = findPojoById(pojoId);
         table.select(pojo);
