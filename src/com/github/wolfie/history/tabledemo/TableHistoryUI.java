@@ -54,8 +54,6 @@ public class TableHistoryUI extends UI {
              * Map<String, String> instead.
              */
             applySerializedState(event.getStateAsJson());
-
-            System.out.println(getPage().getLocation().toString());
         }
     };
 

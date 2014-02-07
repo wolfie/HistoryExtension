@@ -21,7 +21,7 @@ window.com_github_wolfie_history_HistoryExtension = function() {
 			window.history.pushState(state, "", url);
 		} catch (e) {
 			// error code 1 = error on method invoke
-			connector.error(1, e.name, e.message);
+			connector.error(1, e.name, e.message, window.location.href);
 		}
 	};
 	
@@ -30,13 +30,13 @@ window.com_github_wolfie_history_HistoryExtension = function() {
 			window.history.replaceState(state, "", url);
 		} catch (e) {
 			// error code 1 = error on method invoke
-			connector.error(1, e.name, e.message);
+			connector.error(1, e.name, e.message, window.location.href);
 		}
 	};
 	
 	if (window['addEventListener'] !== undefined) {
 		window.addEventListener("popstate", function(e) {
-			connector.popstate(e.state);
+			connector.popstate(e.state, window.location.href);
 		});
 	}
 };
