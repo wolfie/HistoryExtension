@@ -38,10 +38,10 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
     public class PopStateEvent {
         private Map<String, String> map = null;
         private final JSONObject json;
-        private String stringAddress;
+        private final String stringAddress;
         private URI address;
 
-        private PopStateEvent(final JSONObject json, String address) {
+        private PopStateEvent(final JSONObject json, final String address) {
             this.json = json;
             this.stringAddress = address;
         }
@@ -61,14 +61,17 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
         public Map<String, String> getStateAsMap() {
             if (map == null) {
                 final LinkedHashMap<String, String> tempMap = new LinkedHashMap<String, String>();
-                for (final String key : JSONObject.getNames(json)) {
-                    try {
-                        tempMap.put(key, json.getString(key));
-                    } catch (final JSONException e) {
-                        throw new RuntimeException("org.json.JSONObject "
-                                + "seems to have a bug, as it's "
-                                + "returning keys on objects "
-                                + "that don't exist.", e);
+                final String[] names = JSONObject.getNames(json);
+                if (names != null) {
+                    for (final String key : names) {
+                        try {
+                            tempMap.put(key, json.getString(key));
+                        } catch (final JSONException e) {
+                            throw new RuntimeException("org.json.JSONObject "
+                                    + "seems to have a bug, as it's "
+                                    + "returning keys on objects "
+                                    + "that don't exist.", e);
+                        }
                     }
                 }
                 map = Collections.unmodifiableMap(tempMap);
@@ -98,7 +101,7 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
             if (address == null) {
                 try {
                     address = new URI(stringAddress);
-                } catch (URISyntaxException e) {
+                } catch (final URISyntaxException e) {
                     throw new RuntimeException(e);
                 }
             }
@@ -157,7 +160,7 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
         private URI address;
 
         private ErrorEvent(final Type type, final String name,
-                final String message, String address) {
+                final String message, final String address) {
             this.type = type;
             this.name = name;
             this.message = message;
@@ -193,7 +196,7 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
             if (address == null) {
                 try {
                     address = new URI(stringAddress);
-                } catch (URISyntaxException e) {
+                } catch (final URISyntaxException e) {
                     throw new RuntimeException(e);
                 }
             }
@@ -316,7 +319,7 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
     /** Extend a {@link UI} with this {@link HistoryExtension} */
     public void extend(final UI ui) {
         @SuppressWarnings("cast")
-        final AbstractClientConnector acc = (AbstractClientConnector) ui;
+        final AbstractClientConnector acc = ui;
         super.extend(acc);
     }
 
@@ -505,7 +508,7 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
         return errorListeners.remove(listener);
     }
 
-    private void fireListeners(final JSONObject state, String address) {
+    private void fireListeners(final JSONObject state, final String address) {
         final PopStateEvent event = new PopStateEvent(state, address);
         for (final PopStateListener listener : popListeners) {
             listener.popState(event);
