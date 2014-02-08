@@ -59,18 +59,18 @@ public class TableHistoryUI extends UI {
 
     private final SelectedTabChangeListener tabChangeListener = new SelectedTabChangeListener() {
         @Override
-        public void selectedTabChange(SelectedTabChangeEvent event) {
+        public void selectedTabChange(final SelectedTabChangeEvent event) {
             if (applyingSerializedState) {
                 return;
             }
 
-            Component selectedTab = event.getTabSheet().getSelectedTab();
+            final Component selectedTab = event.getTabSheet().getSelectedTab();
 
             String selection;
             if (selectedTab == tableView) {
                 selection = "table";
 
-                MyPojo selectedPojo = tableView.getSelected();
+                final MyPojo selectedPojo = tableView.getSelected();
                 if (selectedPojo != null) {
                     selection += "/" + selectedPojo.getId();
                 }
@@ -93,7 +93,7 @@ public class TableHistoryUI extends UI {
 
     private final TableSelectionListener tableSelectionListener = new TableSelectionListener() {
         @Override
-        public void tableSelectionChanged(MyPojo selectedPojo) {
+        public void tableSelectionChanged(final MyPojo selectedPojo) {
             if (applyingSerializedState) {
                 return;
             }
@@ -118,8 +118,14 @@ public class TableHistoryUI extends UI {
      */
     private boolean applyingSerializedState = false;
 
+    private String contextPath = "";
+
     @Override
     protected void init(final VaadinRequest request) {
+        contextPath = VaadinServlet.getCurrent().getServletContext()
+                .getContextPath();
+        System.out.println(contextPath);
+
         tabsheet.setSizeFull();
         tabsheet.addTab(tableView, "Table View");
         tabsheet.addTab(aboutView, "About this Demo");
@@ -134,30 +140,30 @@ public class TableHistoryUI extends UI {
                 .toString());
     }
 
-    private void pushStateHelper(String nextUrl) {
-        String targetUrl = "/History/TableDemo/" + nextUrl;
+    private void pushStateHelper(final String nextUrl) {
+        String targetUrl = contextPath + "/TableDemo/" + nextUrl;
 
-        String query = getPage().getLocation().getQuery();
+        final String query = getPage().getLocation().getQuery();
         if (query != null) {
             targetUrl += "?" + query;
         }
 
-        JSONObject state = serializeState();
+        final JSONObject state = serializeState();
         history.pushState(state, targetUrl);
     }
 
     private JSONObject serializeState() {
         try {
             final int view;
-            if (tabsheet.getSelectedTab() == tableView)
+            if (tabsheet.getSelectedTab() == tableView) {
                 view = TABLE_VIEW_STATE_VALUE;
-            else if (tabsheet.getSelectedTab() == aboutView)
+            } else if (tabsheet.getSelectedTab() == aboutView) {
                 view = ABOUT_VIEW_STATE_VALUE;
-            else {
+            } else {
                 throw new IllegalStateException("unknown tab selected");
             }
 
-            MyPojo selectedPojo = tableView.getSelected();
+            final MyPojo selectedPojo = tableView.getSelected();
             final int tableValueId;
             if (selectedPojo != null) {
                 tableValueId = selectedPojo.getId();
@@ -166,12 +172,12 @@ public class TableHistoryUI extends UI {
                 tableValueId = -1;
             }
 
-            JSONObject state = new JSONObject();
+            final JSONObject state = new JSONObject();
             state.put(VIEW_KEY, view);
             state.put(POJO_ID_KEY, tableValueId);
             return state;
 
-        } catch (JSONException e) {
+        } catch (final JSONException e) {
             throw new RuntimeException(e);
         }
     }
@@ -183,12 +189,12 @@ public class TableHistoryUI extends UI {
      *            the state object that contains the information needed to
      *            modify the application's state
      */
-    private void applySerializedState(JSONObject state) {
+    private void applySerializedState(final JSONObject state) {
         try {
             applyingSerializedState = true;
 
-            int view = state.getInt(VIEW_KEY);
-            int pojoId = state.getInt(POJO_ID_KEY);
+            final int view = state.getInt(VIEW_KEY);
+            final int pojoId = state.getInt(POJO_ID_KEY);
 
             switch (view) {
             case TABLE_VIEW_STATE_VALUE:
@@ -204,7 +210,7 @@ public class TableHistoryUI extends UI {
 
             tableView.select(pojoId);
 
-        } catch (JSONException e) {
+        } catch (final JSONException e) {
             throw new RuntimeException(e);
         } finally {
             applyingSerializedState = false;
