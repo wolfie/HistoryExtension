@@ -108,7 +108,7 @@ public class SimpleHistoryUI extends UI {
     }
 
     private void pushState() {
-        final Map<String, String> stateMap = new HashMap<>();
+        final Map<String, String> stateMap = new HashMap<String, String>();
         stateMap.put(DATA_KEY, stateField.getValue());
         history.pushState(stateMap, url.getValue());
     }

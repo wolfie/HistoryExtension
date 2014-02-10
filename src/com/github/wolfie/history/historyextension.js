@@ -27,6 +27,7 @@ window.com_github_wolfie_history_HistoryExtension = function() {
 	
 	this.replaceState = function(state, url) {
 		try {
+			// url might be undefined or null, but that's okay.
 			window.history.replaceState(state, "", url);
 		} catch (e) {
 			// error code 1 = error on method invoke

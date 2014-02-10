@@ -24,7 +24,9 @@ import com.vaadin.ui.UI;
 @Title("Table HTML5 History Demo")
 public class TableHistoryUI extends UI {
 
-    @WebServlet(urlPatterns = { "/TableDemo/*" }, asyncSupported = true)
+    private static final String APP_URL = "/TableDemo";
+
+    @WebServlet(urlPatterns = { APP_URL + "/*" }, asyncSupported = true)
     @VaadinServletConfiguration(productionMode = false, ui = TableHistoryUI.class)
     public static class Servlet extends VaadinServlet {
         // default implementation is fine.
@@ -122,10 +124,6 @@ public class TableHistoryUI extends UI {
 
     @Override
     protected void init(final VaadinRequest request) {
-        contextPath = VaadinServlet.getCurrent().getServletContext()
-                .getContextPath();
-        System.out.println(contextPath);
-
         tabsheet.setSizeFull();
         tabsheet.addTab(tableView, "Table View");
         tabsheet.addTab(aboutView, "About this Demo");
@@ -135,13 +133,45 @@ public class TableHistoryUI extends UI {
         history = HistoryExtension.extend(this, popStateListener);
         history.addErrorListener(historyErrorListener);
 
-        // initialize a starting state.
-        history.replaceState(serializeState(), getPage().getLocation()
-                .toString());
+        contextPath = VaadinServlet.getCurrent().getServletContext()
+                .getContextPath();
+
+        // initialize a starting state from URL
+        initStateFromStartingUrl();
+    }
+
+    private void initStateFromStartingUrl() {
+        boolean wasRedirected = false;
+
+        String[] urlParams = getPage().getLocation().getPath()
+                .substring((contextPath + APP_URL).length() + 1).split("/");
+
+        if (urlParams.length == 1 && urlParams[0].equals("")) {
+            // initial starting page, do nothing
+        } else if (urlParams.length == 1 && urlParams[0].equals("about")) {
+            tabsheet.setSelectedTab(aboutView);
+        } else if (urlParams.length == 1 && urlParams[0].equals("table")) {
+            // table page without a parameter.
+        } else if (urlParams.length == 2 && urlParams[0].equals("table")) {
+            try {
+                int pojoId = Integer.parseInt(urlParams[1]);
+                tableView.select(pojoId);
+            } catch (NumberFormatException e) {
+                getPage().setLocation(contextPath + APP_URL + "/");
+                wasRedirected = true;
+            }
+        } else {
+            getPage().setLocation(contextPath + APP_URL + "/");
+            wasRedirected = true;
+        }
+
+        if (!wasRedirected) {
+            history.replaceState(serializeState(), null);
+        }
     }
 
     private void pushStateHelper(final String nextUrl) {
-        String targetUrl = contextPath + "/TableDemo/" + nextUrl;
+        String targetUrl = contextPath + APP_URL + "/" + nextUrl;
 
         final String query = getPage().getLocation().getQuery();
         if (query != null) {
@@ -190,6 +220,10 @@ public class TableHistoryUI extends UI {
      *            modify the application's state
      */
     private void applySerializedState(final JSONObject state) {
+        if (state == null) {
+            return;
+        }
+
         try {
             applyingSerializedState = true;
 

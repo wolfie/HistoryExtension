@@ -121,7 +121,9 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
          * A state was popped off the browser's history stack
          * 
          * @param event
-         *            The event object describing the application state
+         *            The event object describing the application state. Will be
+         *            <code>null</code> if no state object was explicitly given
+         *            for a particular history entry.
          * @see HistoryExtension#pushState(JSONObject, String)
          * @see HistoryExtension#pushState(Map, String)
          */
@@ -290,8 +292,13 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
             public void call(final JSONArray arguments) throws JSONException {
                 if (arguments.length() > 0) {
                     try {
-                        final JSONObject state = arguments.getJSONObject(0);
                         final String address = arguments.getString(1);
+                        final JSONObject state;
+                        if (!arguments.isNull(0)) {
+                            state = arguments.getJSONObject(0);
+                        } else {
+                            state = null;
+                        }
                         fireListeners(state, address);
                     } catch (final JSONException e) {
                         throw new RuntimeException(e);
@@ -318,7 +325,6 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
 
     /** Extend a {@link UI} with this {@link HistoryExtension} */
     public void extend(final UI ui) {
-        @SuppressWarnings("cast")
         final AbstractClientConnector acc = ui;
         super.extend(acc);
     }
@@ -371,7 +377,8 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
      *            application state
      * @param nextUrl
      *            A URI string of what will be displayed in the browser's
-     *            location bar
+     *            location bar. Or <code>null</code> if the current URL should
+     *            be used instead
      * @see PopStateListener
      * @see PopStateEvent#getStateAsMap()
      */
@@ -403,7 +410,8 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
      *            application state
      * @param nextUrl
      *            A URI string of what will be displayed in the browser's
-     *            location bar
+     *            location bar. Or <code>null</code> if the current URL should
+     *            be used instead
      * @see PopStateListener
      * @see PopStateEvent#getStateAsMap()
      */
@@ -427,7 +435,8 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
      *            application state
      * @param newUrl
      *            A URI string of what will be displayed in the browser's
-     *            location bar
+     *            location bar. Or <code>null</code> if the current URL should
+     *            be used instead
      * @see PopStateListener
      * @see PopStateEvent#getStateAsMap()
      */
@@ -452,9 +461,10 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
      *            application state
      * @param newUrl
      *            A URI string of what will be displayed in the browser's
-     *            location bar
+     *            location bar. Or <code>null</code> if the current URL should
+     *            be used instead
      * @see PopStateListener
-     * @see PopStateEvent#getStateAsMap()
+     * @see PopStateEvent#getStateAsJson()
      */
     public void replaceState(final JSONObject newStateJson, final String newUrl) {
         callFunction("replaceState", newStateJson, newUrl);
