@@ -45,6 +45,7 @@ public class TableHistoryUI extends UI {
                     "Your browser doesn't seem to support pushState properly: "
                             + event.getErrorName(),
                     Notification.Type.ERROR_MESSAGE);
+            event.cancel();
         }
     };
 
