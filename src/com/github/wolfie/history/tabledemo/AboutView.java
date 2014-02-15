@@ -1,11 +1,13 @@
 package com.github.wolfie.history.tabledemo;
 
+import com.vaadin.navigator.View;
+import com.vaadin.navigator.ViewChangeListener.ViewChangeEvent;
 import com.vaadin.shared.ui.label.ContentMode;
 import com.vaadin.ui.CssLayout;
 import com.vaadin.ui.CustomComponent;
 import com.vaadin.ui.Label;
 
-public class AboutView extends CustomComponent {
+public class AboutView extends CustomComponent implements View {
     private static final String HTML = "<div style='margin: 2em;'>"
             /*-*/
             + "<h1>About This Demo</h1>"
@@ -44,8 +46,12 @@ public class AboutView extends CustomComponent {
     public AboutView() {
         setCompositionRoot(layout);
 
-        Label label = new Label(HTML, ContentMode.HTML);
+        final Label label = new Label(HTML, ContentMode.HTML);
         label.setWidth("40em");
         layout.addComponent(label);
+    }
+
+    @Override
+    public void enter(final ViewChangeEvent event) {
     }
 }

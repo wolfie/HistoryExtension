@@ -3,11 +3,13 @@ package com.github.wolfie.history.tabledemo;
 import com.vaadin.data.Property.ValueChangeEvent;
 import com.vaadin.data.Property.ValueChangeListener;
 import com.vaadin.data.util.BeanItemContainer;
+import com.vaadin.navigator.View;
+import com.vaadin.navigator.ViewChangeListener.ViewChangeEvent;
 import com.vaadin.ui.CustomComponent;
 import com.vaadin.ui.HorizontalSplitPanel;
 import com.vaadin.ui.Table;
 
-public class TableView extends CustomComponent {
+public class TableView extends CustomComponent implements View {
 
     public interface TableSelectionListener {
         /**
@@ -35,7 +37,7 @@ public class TableView extends CustomComponent {
         }
     };
 
-    public TableView(TableSelectionListener listener) {
+    public TableView(final TableSelectionListener listener) {
         this.listener = listener;
 
         setSizeFull();
@@ -89,8 +91,12 @@ public class TableView extends CustomComponent {
      * Selects the pojo with the given id from the table, or removes selection
      * if no such id is found.
      */
-    public void select(int pojoId) {
-        MyPojo pojo = findPojoById(pojoId);
+    public void select(final int pojoId) {
+        final MyPojo pojo = findPojoById(pojoId);
         table.select(pojo);
+    }
+
+    @Override
+    public void enter(final ViewChangeEvent event) {
     }
 }
