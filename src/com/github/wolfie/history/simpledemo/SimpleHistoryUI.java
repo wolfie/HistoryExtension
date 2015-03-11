@@ -1,11 +1,5 @@
 package com.github.wolfie.history.simpledemo;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-
-import javax.servlet.annotation.WebServlet;
-
 import com.github.wolfie.history.HistoryExtension;
 import com.github.wolfie.history.HistoryExtension.ErrorListener;
 import com.github.wolfie.history.HistoryExtension.PopStateEvent;
@@ -16,14 +10,12 @@ import com.vaadin.event.ShortcutAction.KeyCode;
 import com.vaadin.event.ShortcutListener;
 import com.vaadin.server.VaadinRequest;
 import com.vaadin.server.VaadinServlet;
-import com.vaadin.ui.Button;
+import com.vaadin.ui.*;
 import com.vaadin.ui.Button.ClickEvent;
-import com.vaadin.ui.FormLayout;
-import com.vaadin.ui.Label;
-import com.vaadin.ui.Notification;
-import com.vaadin.ui.TextField;
-import com.vaadin.ui.UI;
-import com.vaadin.ui.VerticalLayout;
+
+import javax.servlet.annotation.WebServlet;
+import java.util.HashMap;
+import java.util.Map;
 
 @SuppressWarnings("serial")
 @Title("Simplified HTML5 History Demo")
@@ -69,7 +61,13 @@ public class SimpleHistoryUI extends UI {
          * we want to initialize the history state data with something we can
          * handle in our popstate listener
          */
-        history.replaceState(Collections.singletonMap(DATA_KEY, ""), getPage()
+//        final Map<String, String> newStateMap = Collections.singletonMap(DATA_KEY, "");
+        final Map<String, String> newStateMap = new HashMap<String, String>();
+        newStateMap.put(DATA_KEY, "");
+        final Class<?> componentType = newStateMap.getClass().getComponentType();
+        System.err.println(componentType);
+        System.err.println(componentType);
+        history.replaceState(newStateMap, getPage()
                 .getLocation().toString());
 
         setContent(layout);

@@ -1,8 +1,8 @@
 package com.github.wolfie.history;
 
-import javax.servlet.annotation.WebServlet;
-
 import com.vaadin.server.VaadinServlet;
+
+import javax.servlet.annotation.WebServlet;
 
 @WebServlet(urlPatterns = { "/VAADIN/*" }, asyncSupported = true)
 public class DefaultServlet extends VaadinServlet {

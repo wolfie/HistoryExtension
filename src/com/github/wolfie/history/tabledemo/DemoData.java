@@ -1,8 +1,8 @@
 package com.github.wolfie.history.tabledemo;
 
-import java.util.Random;
-
 import com.vaadin.data.util.BeanItemContainer;
+
+import java.util.Random;
 
 public class DemoData {
 
