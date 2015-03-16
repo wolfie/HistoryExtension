@@ -1,7 +1,6 @@
 package com.github.wolfie.history;
 
 import com.github.wolfie.history.HistoryExtension.ErrorEvent.Type;
-import com.sun.xml.internal.txw2.IllegalAnnotationException;
 import com.vaadin.annotations.JavaScript;
 import com.vaadin.navigator.NavigationStateManager;
 import com.vaadin.navigator.Navigator;
@@ -12,6 +11,7 @@ import com.vaadin.ui.JavaScriptFunction;
 import com.vaadin.ui.UI;
 import elemental.json.JsonArray;
 import elemental.json.JsonException;
+import elemental.json.JsonNull;
 import elemental.json.JsonObject;
 import elemental.json.impl.JreJsonFactory;
 
@@ -113,11 +113,11 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
      */
     public class PopStateEvent {
         private Map<String, String> map = null;
-        private final JsonArray json;
+        private final JsonObject json;
         private final String stringAddress;
         private URI address;
 
-        private PopStateEvent(final JsonArray json, final String address) {
+        private PopStateEvent(final JsonObject json, final String address) {
             this.json = json;
             this.stringAddress = address;
         }
@@ -126,19 +126,8 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
          * Returns the state data as an {@link JsonObject}. Never
          * <code>null</code>.
          */
-        public JsonArray getStateAsJson() {
+        public JsonObject getStateAsJson() {
             return json;
-        }
-
-        /**
-         * Returns the state data as an <strong>unmodifiable</strong>
-         * {@link Map Map<String, String>}. Never <code>null</code>.
-         */
-        public Map<String, String> getStateAsMap() {
-            if (map == null) {
-                map = arrayToMap(json);
-            }
-            return map;
         }
 
         /**
@@ -357,8 +346,12 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
                 if (arguments.length() > 0) {
                     try {
                         final String address = arguments.getString(1);
-                        final JsonArray state;
-                        state = arguments.get(0);
+                        final JsonObject state;
+                        if (!(arguments.get(0) instanceof JsonNull)) {
+                            state = arguments.get(0);
+                        } else {
+                            state = null;
+                        }
                         fireListeners(state, address);
                     } catch (final JsonException e) {
                         throw new RuntimeException(e);
@@ -539,7 +532,7 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
     public void addPopStateListener(final PopStateListener listener)
             throws IllegalArgumentException {
         if (listener == null) {
-            throw new IllegalAnnotationException("listener may not be null");
+            throw new IllegalArgumentException("listener may not be null");
         }
         popListeners.add(listener);
     }
@@ -563,7 +556,7 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
     public void addErrorListener(final ErrorListener listener)
             throws IllegalArgumentException {
         if (listener == null) {
-            throw new IllegalAnnotationException("listener may not be null");
+            throw new IllegalArgumentException("listener may not be null");
         }
         errorListeners.add(listener);
     }
@@ -578,7 +571,7 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
         return errorListeners.remove(listener);
     }
 
-    private void fireListeners(final JsonArray state, final String address) {
+    private void fireListeners(final JsonObject state, final String address) {
         final PopStateEvent event = new PopStateEvent(state, address);
         for (final PopStateListener listener : popListeners) {
             listener.popState(event);
