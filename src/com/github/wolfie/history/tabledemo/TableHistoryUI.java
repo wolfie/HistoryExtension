@@ -1,5 +1,11 @@
 package com.github.wolfie.history.tabledemo;
 
+import javax.servlet.annotation.WebServlet;
+
+import elemental.json.Json;
+import elemental.json.JsonException;
+import elemental.json.JsonObject;
+
 import com.github.wolfie.history.HistoryExtension;
 import com.github.wolfie.history.HistoryExtension.PopStateEvent;
 import com.github.wolfie.history.HistoryExtension.PopStateListener;
@@ -14,12 +20,6 @@ import com.vaadin.ui.TabSheet;
 import com.vaadin.ui.TabSheet.SelectedTabChangeEvent;
 import com.vaadin.ui.TabSheet.SelectedTabChangeListener;
 import com.vaadin.ui.UI;
-import elemental.json.JsonException;
-import elemental.json.JsonObject;
-import elemental.json.impl.JreJsonFactory;
-
-import javax.servlet.annotation.WebServlet;
-import java.util.Map;
 
 @SuppressWarnings("serial")
 @Title("Table HTML5 History Demo")
@@ -57,7 +57,7 @@ public class TableHistoryUI extends UI {
              * We could've used event.getStateAsMap as well, to get an
              * Map<String, String> instead.
              */
-            applySerializedState(event.getStateAsMap());
+            applySerializedState(event.getStateAsJson());
         }
     };
 
@@ -118,7 +118,7 @@ public class TableHistoryUI extends UI {
 
     /**
      * A flag that prevents event feedback loops when modifying internal state
-     * via {@link #applySerializedState(Map)}
+     * via {@link #applySerializedState(JsonObject)}
      */
     private boolean applyingSerializedState = false;
 
@@ -204,7 +204,7 @@ public class TableHistoryUI extends UI {
                 tableValueId = -1;
             }
 
-            final JsonObject state = new JreJsonFactory().createObject();
+            final JsonObject state = Json.createObject();
             state.put(VIEW_KEY, view);
             state.put(POJO_ID_KEY, tableValueId);
             return state;
@@ -221,7 +221,7 @@ public class TableHistoryUI extends UI {
      *            the state object that contains the information needed to
      *            modify the application's state
      */
-    private void applySerializedState(final Map<String,String> state) {
+    private void applySerializedState(final JsonObject state) {
         if (state == null) {
             return;
         }
@@ -229,8 +229,8 @@ public class TableHistoryUI extends UI {
         try {
             applyingSerializedState = true;
 
-            final int view = Integer.parseInt(state.get(VIEW_KEY));
-            final int pojoId = Integer.parseInt(POJO_ID_KEY);
+            final int view = (int)state.getNumber(VIEW_KEY);
+            final int pojoId = (int)state.getNumber(POJO_ID_KEY);
 
             switch (view) {
             case TABLE_VIEW_STATE_VALUE:

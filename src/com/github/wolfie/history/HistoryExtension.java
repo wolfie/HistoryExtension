@@ -1,5 +1,19 @@
 package com.github.wolfie.history;
 
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Logger;
+
+import elemental.json.Json;
+import elemental.json.JsonArray;
+import elemental.json.JsonException;
+import elemental.json.JsonObject;
+
 import com.github.wolfie.history.HistoryExtension.ErrorEvent.Type;
 import com.vaadin.annotations.JavaScript;
 import com.vaadin.navigator.NavigationStateManager;
@@ -9,19 +23,6 @@ import com.vaadin.server.AbstractJavaScriptExtension;
 import com.vaadin.server.Page;
 import com.vaadin.ui.JavaScriptFunction;
 import com.vaadin.ui.UI;
-import elemental.json.JsonArray;
-import elemental.json.JsonException;
-import elemental.json.JsonNull;
-import elemental.json.JsonObject;
-import elemental.json.impl.JreJsonFactory;
-
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Logger;
 
 /**
  * An extension that allows server-side control over the HTML5
@@ -37,7 +38,7 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
     private final class NavManager implements NavigationStateManager,
             PopStateListener {
 
-        private final JsonObject emptyStateObject = new JreJsonFactory().createObject();
+        private final JsonObject emptyStateObject = Json.createObject();
         private Navigator navigator;
         private String state = null;
         private final String urlRoot;
@@ -128,6 +129,31 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
          */
         public JsonObject getStateAsJson() {
             return json;
+        }
+
+        /**
+         * Returns the state data as an <strong>unmodifiable</strong>
+         * {@link Map Map<String, String>}. Never <code>null</code>.
+         */
+        public Map<String, String> getStateAsMap() {
+            if (map == null) {
+                final LinkedHashMap<String, String> tempMap = new LinkedHashMap<String, String>();
+                final String[] names = json.keys();
+                if (names != null) {
+                    for (final String key : names) {
+                        try {
+                            tempMap.put(key, json.getString(key));
+                        } catch (final JsonException e) {
+                            throw new RuntimeException("org.json.JSONObject "
+                                    + "seems to have a bug, as it's "
+                                    + "returning keys on objects "
+                                    + "that don't exist.", e);
+                        }
+                    }
+                }
+                map = Collections.unmodifiableMap(tempMap);
+            }
+            return map;
         }
 
         /**
@@ -347,8 +373,8 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
                     try {
                         final String address = arguments.getString(1);
                         final JsonObject state;
-                        if (!(arguments.get(0) instanceof JsonNull)) {
-                            state = arguments.get(0);
+                        if (arguments.length() > 0 && arguments.get(0) != null) {
+                            state = arguments.getObject(0);
                         } else {
                             state = null;
                         }
@@ -437,7 +463,7 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
      */
     public void pushState(final Map<String, String> nextStateMap,
             final String nextUrl) {
-        callFunction("pushState", mapToArray(nextStateMap), nextUrl);
+        callFunction("pushState", nextStateMap, nextUrl);
     }
 
     /**
@@ -453,7 +479,7 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
      * In that case, we would write code similar to the following:
      * 
      * <code><pre>
-     * JsonObject stateJson = new JsonObject();
+     * JSONObject stateJson = new JSONObject();
      * stateJson.put("userChoice", "bar");
      * extension.pushState(stateJson, "/bar");
      * </pre></code>
@@ -495,7 +521,7 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
      */
     public void replaceState(final Map<String, String> newStateMap,
             final String newUrl) {
-        callFunction("replaceState", mapToArray(newStateMap), newUrl);
+        callFunction("replaceState", newStateMap, newUrl);
     }
 
     /**
@@ -615,43 +641,5 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
     public NavigationStateManager createNavigationStateManager(
             final String urlRoot) {
         return new NavManager(urlRoot);
-    }
-
-    private static String[] mapToArray(Map<String,String> map) {
-        String[] array = new String[map.size() * 2];
-        int i = 0;
-        for (Map.Entry<String, String> entry : map.entrySet()) {
-            array[i++] = entry.getKey();
-            array[i++] = entry.getValue();
-        }
-        return array;
-    }
-
-    private static String[] mapToJson(Map<String,String> map) {
-
-        String[] array = new String[map.size() * 2];
-        int i = 0;
-        for (Map.Entry<String, String> entry : map.entrySet()) {
-            array[i++] = entry.getKey();
-            array[i++] = entry.getValue();
-        }
-        return array;
-    }
-
-    private static Map<String,String> arrayToMap(JsonArray array) {
-        final int length = array.length();
-        Map<String,String> map = new LinkedHashMap<String, String>(length / 2);
-        for (int i = 0; i < length; i++) {
-            map.put(array.getString(i), array.getString(i++));
-        }
-        return map;
-    }
-
-    private static Map<String,String> arrayToMap(String[] array) {
-        Map<String,String> map = new LinkedHashMap<String, String>(array.length / 2);
-        for (int i = 0; i < array.length; i++) {
-            map.put(array[i], array[i++]);
-        }
-        return map;
     }
 }
