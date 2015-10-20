@@ -373,7 +373,7 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
                     try {
                         final String address = arguments.getString(1);
                         final JsonObject state;
-                        if (arguments.length() > 0 && arguments.get(0) != null) {
+                        if (arguments.length() > 0 && !(arguments.get(0) instanceof JsonNull) && arguments.get(0) != null) {
                             state = arguments.getObject(0);
                         } else {
                             state = null;
