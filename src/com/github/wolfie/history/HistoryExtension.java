@@ -13,6 +13,7 @@ import elemental.json.Json;
 import elemental.json.JsonArray;
 import elemental.json.JsonException;
 import elemental.json.JsonObject;
+import elemental.json.JsonNull;
 
 import com.github.wolfie.history.HistoryExtension.ErrorEvent.Type;
 import com.vaadin.annotations.JavaScript;
