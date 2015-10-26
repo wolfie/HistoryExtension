@@ -1,7 +1,5 @@
 package com.github.wolfie.history.navigatordemo;
 
-import javax.servlet.annotation.WebServlet;
-
 import com.github.wolfie.history.HistoryExtension;
 import com.github.wolfie.history.tabledemo.AboutView;
 import com.github.wolfie.history.tabledemo.MyPojo;
@@ -20,6 +18,8 @@ import com.vaadin.ui.TabSheet;
 import com.vaadin.ui.TabSheet.SelectedTabChangeEvent;
 import com.vaadin.ui.TabSheet.SelectedTabChangeListener;
 import com.vaadin.ui.UI;
+
+import javax.servlet.annotation.WebServlet;
 
 @SuppressWarnings("serial")
 @Title("Navigator Integration Example")

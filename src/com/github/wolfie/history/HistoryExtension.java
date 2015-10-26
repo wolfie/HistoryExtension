@@ -9,12 +9,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
+import elemental.json.Json;
+import elemental.json.JsonArray;
+import elemental.json.JsonException;
+import elemental.json.JsonObject;
+import elemental.json.JsonNull;
 
 import com.github.wolfie.history.HistoryExtension.ErrorEvent.Type;
-import com.sun.xml.internal.txw2.IllegalAnnotationException;
 import com.vaadin.annotations.JavaScript;
 import com.vaadin.navigator.NavigationStateManager;
 import com.vaadin.navigator.Navigator;
@@ -38,7 +39,7 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
     private final class NavManager implements NavigationStateManager,
             PopStateListener {
 
-        private final JSONObject emptyStateObject = new JSONObject();
+        private final JsonObject emptyStateObject = Json.createObject();
         private Navigator navigator;
         private String state = null;
         private final String urlRoot;
@@ -114,20 +115,20 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
      */
     public class PopStateEvent {
         private Map<String, String> map = null;
-        private final JSONObject json;
+        private final JsonObject json;
         private final String stringAddress;
         private URI address;
 
-        private PopStateEvent(final JSONObject json, final String address) {
+        private PopStateEvent(final JsonObject json, final String address) {
             this.json = json;
             this.stringAddress = address;
         }
 
         /**
-         * Returns the state data as an {@link JSONObject}. Never
+         * Returns the state data as an {@link JsonObject}. Never
          * <code>null</code>.
          */
-        public JSONObject getStateAsJson() {
+        public JsonObject getStateAsJson() {
             return json;
         }
 
@@ -138,12 +139,12 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
         public Map<String, String> getStateAsMap() {
             if (map == null) {
                 final LinkedHashMap<String, String> tempMap = new LinkedHashMap<String, String>();
-                final String[] names = JSONObject.getNames(json);
+                final String[] names = json.keys();
                 if (names != null) {
                     for (final String key : names) {
                         try {
                             tempMap.put(key, json.getString(key));
-                        } catch (final JSONException e) {
+                        } catch (final JsonException e) {
                             throw new RuntimeException("org.json.JSONObject "
                                     + "seems to have a bug, as it's "
                                     + "returning keys on objects "
@@ -201,7 +202,7 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
          *            The event object describing the application state. Will be
          *            <code>null</code> if no state object was explicitly given
          *            for a particular history entry.
-         * @see HistoryExtension#pushState(JSONObject, String)
+         * @see HistoryExtension#pushState(JsonObject, String)
          * @see HistoryExtension#pushState(Map, String)
          */
         void popState(PopStateEvent event);
@@ -368,18 +369,18 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
     public HistoryExtension() {
         addFunction("popstate", new JavaScriptFunction() {
             @Override
-            public void call(final JSONArray arguments) throws JSONException {
+            public void call(final JsonArray arguments) throws JsonException {
                 if (arguments.length() > 0) {
                     try {
                         final String address = arguments.getString(1);
-                        final JSONObject state;
-                        if (!arguments.isNull(0)) {
-                            state = arguments.getJSONObject(0);
+                        final JsonObject state;
+                        if (arguments.length() > 0 && !(arguments.get(0) instanceof JsonNull) && arguments.get(0) != null) {
+                            state = arguments.getObject(0);
                         } else {
                             state = null;
                         }
                         fireListeners(state, address);
-                    } catch (final JSONException e) {
+                    } catch (final JsonException e) {
                         throw new RuntimeException(e);
                     }
                 }
@@ -388,8 +389,8 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
 
         addFunction("error", new JavaScriptFunction() {
             @Override
-            public void call(final JSONArray arguments) throws JSONException {
-                final int errorType = arguments.getInt(0);
+            public void call(final JsonArray arguments) throws JsonException {
+                final int errorType = (int)arguments.getNumber(0);
                 final ErrorEvent.Type type = ErrorEvent.Type.values()[errorType];
                 final String name = arguments.getString(1);
                 final String message = arguments.getString(2);
@@ -467,7 +468,7 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
     }
 
     /**
-     * Pushes a state object, represented by a {@link JSONObject}, in the
+     * Pushes a state object, represented by a {@link JsonObject}, in the
      * browser's history stack.
      * <p>
      * <em>Note:</em> The state should represent the state of the application as
@@ -494,7 +495,7 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
      * @see PopStateListener
      * @see PopStateEvent#getStateAsMap()
      */
-    public void pushState(final JSONObject nextStateJson, final String nextUrl) {
+    public void pushState(final JsonObject nextStateJson, final String nextUrl) {
         callFunction("pushState", nextStateJson, nextUrl);
     }
 
@@ -525,7 +526,7 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
     }
 
     /**
-     * Similar to {@link #pushState(JSONObject, String)}, but instead of adding
+     * Similar to {@link #pushState(JsonObject, String)}, but instead of adding
      * a new history entry in the browser, it replaces the current one.
      * <p>
      * Works perfectly for tracking runtime progress (e.g. scrolling down a
@@ -545,7 +546,7 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
      * @see PopStateListener
      * @see PopStateEvent#getStateAsJson()
      */
-    public void replaceState(final JSONObject newStateJson, final String newUrl) {
+    public void replaceState(final JsonObject newStateJson, final String newUrl) {
         callFunction("replaceState", newStateJson, newUrl);
     }
 
@@ -558,7 +559,7 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
     public void addPopStateListener(final PopStateListener listener)
             throws IllegalArgumentException {
         if (listener == null) {
-            throw new IllegalAnnotationException("listener may not be null");
+            throw new IllegalArgumentException("listener may not be null");
         }
         popListeners.add(listener);
     }
@@ -582,7 +583,7 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
     public void addErrorListener(final ErrorListener listener)
             throws IllegalArgumentException {
         if (listener == null) {
-            throw new IllegalAnnotationException("listener may not be null");
+            throw new IllegalArgumentException("listener may not be null");
         }
         errorListeners.add(listener);
     }
@@ -597,7 +598,7 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
         return errorListeners.remove(listener);
     }
 
-    private void fireListeners(final JSONObject state, final String address) {
+    private void fireListeners(final JsonObject state, final String address) {
         final PopStateEvent event = new PopStateEvent(state, address);
         for (final PopStateListener listener : popListeners) {
             listener.popState(event);

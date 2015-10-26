@@ -2,8 +2,9 @@ package com.github.wolfie.history.tabledemo;
 
 import javax.servlet.annotation.WebServlet;
 
-import org.json.JSONException;
-import org.json.JSONObject;
+import elemental.json.Json;
+import elemental.json.JsonException;
+import elemental.json.JsonObject;
 
 import com.github.wolfie.history.HistoryExtension;
 import com.github.wolfie.history.HistoryExtension.PopStateEvent;
@@ -117,7 +118,7 @@ public class TableHistoryUI extends UI {
 
     /**
      * A flag that prevents event feedback loops when modifying internal state
-     * via {@link #applySerializedState(JSONObject)}
+     * via {@link #applySerializedState(JsonObject)}
      */
     private boolean applyingSerializedState = false;
 
@@ -179,11 +180,11 @@ public class TableHistoryUI extends UI {
             targetUrl += "?" + query;
         }
 
-        final JSONObject state = serializeState();
+        final JsonObject state = serializeState();
         history.pushState(state, targetUrl);
     }
 
-    private JSONObject serializeState() {
+    private JsonObject serializeState() {
         try {
             final int view;
             if (tabsheet.getSelectedTab() == tableView) {
@@ -203,12 +204,12 @@ public class TableHistoryUI extends UI {
                 tableValueId = -1;
             }
 
-            final JSONObject state = new JSONObject();
+            final JsonObject state = Json.createObject();
             state.put(VIEW_KEY, view);
             state.put(POJO_ID_KEY, tableValueId);
             return state;
 
-        } catch (final JSONException e) {
+        } catch (final JsonException e) {
             throw new RuntimeException(e);
         }
     }
@@ -220,7 +221,7 @@ public class TableHistoryUI extends UI {
      *            the state object that contains the information needed to
      *            modify the application's state
      */
-    private void applySerializedState(final JSONObject state) {
+    private void applySerializedState(final JsonObject state) {
         if (state == null) {
             return;
         }
@@ -228,8 +229,8 @@ public class TableHistoryUI extends UI {
         try {
             applyingSerializedState = true;
 
-            final int view = state.getInt(VIEW_KEY);
-            final int pojoId = state.getInt(POJO_ID_KEY);
+            final int view = (int)state.getNumber(VIEW_KEY);
+            final int pojoId = (int)state.getNumber(POJO_ID_KEY);
 
             switch (view) {
             case TABLE_VIEW_STATE_VALUE:
@@ -245,7 +246,7 @@ public class TableHistoryUI extends UI {
 
             tableView.select(pojoId);
 
-        } catch (final JSONException e) {
+        } catch (final JsonException e) {
             throw new RuntimeException(e);
         } finally {
             applyingSerializedState = false;
