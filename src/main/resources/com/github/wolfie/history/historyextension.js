@@ -18,8 +18,11 @@ window.com_github_wolfie_history_HistoryExtension = function() {
 	// wrapped functions
 	this.pushState = function(state, url) {
 		try {
-			// url might be undefined or null, but that's okay.
-			window.history.pushState(state, "", url);
+                        // Do not pass pushState if already there
+                        if(window.location.href != window.location.protocol + "//" + window.location.host + url) {
+      			// url might be undefined or null, but that's okay.
+                            window.history.pushState(state, "", url);
+                        }
 		} catch (e) {
 			// error code 1 = error on method invoke
 			connector.error(1, e.name, e.message, window.location.href);

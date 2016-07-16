@@ -35,6 +35,7 @@ public class PushStateLink extends AbstractJavaScriptComponent {
             addFunction("onClick", new JavaScriptFunction() {
                 @Override
                 public void call(JsonArray arguments) {
+                    // TODO figure out if it would be possible to set the correct value to Page location.
                     Navigator navigator = getUI().getNavigator();
                     navigator.navigateTo(viewIndentifier);
                 }
