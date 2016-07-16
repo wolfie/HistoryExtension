@@ -19,9 +19,11 @@ import com.github.wolfie.history.HistoryExtension.ErrorEvent.Type;
 import com.vaadin.annotations.JavaScript;
 import com.vaadin.navigator.NavigationStateManager;
 import com.vaadin.navigator.Navigator;
+import com.vaadin.navigator.ViewDisplay;
 import com.vaadin.server.AbstractClientConnector;
 import com.vaadin.server.AbstractJavaScriptExtension;
 import com.vaadin.server.Page;
+import com.vaadin.server.VaadinServlet;
 import com.vaadin.ui.JavaScriptFunction;
 import com.vaadin.ui.UI;
 
@@ -642,5 +644,17 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
     public NavigationStateManager createNavigationStateManager(
             final String urlRoot) {
         return new NavManager(urlRoot);
+    }
+    
+    public static Navigator createNavigationStateManager(UI ui, ViewDisplay display) {
+        HistoryExtension history = new HistoryExtension();
+        history.extend(ui);
+        
+        String contextPath = VaadinServlet.getCurrent().getServletContext()
+                .getContextPath();
+
+        NavigationStateManager pushStateManager = history.createNavigationStateManager(contextPath);
+        return new Navigator(ui, pushStateManager, display);
+
     }
 }
