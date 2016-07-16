@@ -26,6 +26,7 @@ import com.vaadin.server.Page;
 import com.vaadin.server.VaadinServlet;
 import com.vaadin.ui.JavaScriptFunction;
 import com.vaadin.ui.UI;
+import elemental.json.JsonType;
 
 /**
  * An extension that allows server-side control over the HTML5
@@ -63,8 +64,10 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
         @Override
         public void setState(final String state) {
             this.state = state;
-            pushState(emptyStateObject, urlRoot + state
-                    + (query != null ? "?" + query : ""));
+            final String pushStateUrl = urlRoot + "/" + state
+                    + (query != null ? "?" + query : "");
+            
+            pushState(emptyStateObject, pushStateUrl);
         }
 
         @Override
@@ -105,9 +108,12 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
                 return "";
             }
 
-            final String state = path.substring(urlRoot.length());
+            String parsedState = path.substring(urlRoot.length());
+            if(parsedState.startsWith("/")) {
+                parsedState = parsedState.substring(1);
+            }
             query = uri.getQuery();
-            return state;
+            return parsedState;
         }
     }
 
@@ -375,9 +381,14 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
                 if (arguments.length() > 0) {
                     try {
                         final String address = arguments.getString(1);
-                        final JsonObject state;
+                        JsonObject state;
                         if (arguments.length() > 0 && !(arguments.get(0) instanceof JsonNull) && arguments.get(0) != null) {
-                            state = arguments.getObject(0);
+                            // state not always object, I assuem this is bug, but on the other hand there is usually no need for state in Vaadin app 
+                            try {
+                                state = arguments.getObject(0);
+                            } catch (Exception e) {
+                                state = null;
+                            }
                         } else {
                             state = null;
                         }
