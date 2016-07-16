@@ -21,7 +21,7 @@
         <connection>scm:git:git://github.com/wolfie/HistoryExtension.git</connection>
         <developerConnection>scm:git:ssh://git@github.com:/wolfie/HistoryExtensiont.git</developerConnection>
         <tag>HEAD</tag>
-     </scm>
+    </scm>
 
     <issueManagement>
         <system>GitHub</system>
@@ -127,10 +127,10 @@
                 <extensions>true</extensions>
                 <configuration>
                     <instructions>
-                      <!-- TODO make this OSGi compatible
-                        <Export-Package>!org.vaadin.addon.leaflet.client,org.vaadin.addon.leaflet.*</Export-Package>
-                        <Import-Package>!com.google.gwt.*,!com.vaadin.client.*,!org.peimari.gleaflet.*,*</Import-Package>
- -->
+                        <!-- TODO make this OSGi compatible
+                                               <Export-Package>!org.vaadin.addon.leaflet.client,org.vaadin.addon.leaflet.*</Export-Package>
+                                               <Import-Package>!com.google.gwt.*,!com.vaadin.client.*,!org.peimari.gleaflet.*,*</Import-Package>
+                        -->
                     </instructions>
                 </configuration>
                 <executions>
@@ -221,6 +221,13 @@
             <artifactId>junit</artifactId>
             <version>4.10</version>
             <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>javax.servlet</groupId>
+            <artifactId>javax.servlet-api</artifactId>
+            <version>3.0.1</version>
+            <scope>provided</scope>
         </dependency>
         
 
