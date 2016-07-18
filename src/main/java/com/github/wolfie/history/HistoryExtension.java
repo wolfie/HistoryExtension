@@ -1,5 +1,7 @@
 package com.github.wolfie.history;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -9,7 +11,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
-import elemental.json.Json;
 import elemental.json.JsonArray;
 import elemental.json.JsonException;
 import elemental.json.JsonObject;
@@ -19,27 +20,33 @@ import com.github.wolfie.history.HistoryExtension.ErrorEvent.Type;
 import com.vaadin.annotations.JavaScript;
 import com.vaadin.navigator.NavigationStateManager;
 import com.vaadin.navigator.Navigator;
+import com.vaadin.navigator.ViewDisplay;
 import com.vaadin.server.AbstractClientConnector;
 import com.vaadin.server.AbstractJavaScriptExtension;
 import com.vaadin.server.Page;
+import com.vaadin.server.VaadinServlet;
+import com.vaadin.ui.ComponentContainer;
 import com.vaadin.ui.JavaScriptFunction;
+import com.vaadin.ui.SingleComponentContainer;
 import com.vaadin.ui.UI;
 
 /**
  * An extension that allows server-side control over the HTML5
  * <code>history</code> JavaScript object, and also allows listening to the
  * {@link PopStateEvent}.
- * 
+ *
  * @author Henrik Paul
  */
 @SuppressWarnings("serial")
 @JavaScript("historyextension.js")
 public class HistoryExtension extends AbstractJavaScriptExtension {
+    
+    protected final static ObjectMapper defaultMapper = new ObjectMapper();
 
     private final class NavManager implements NavigationStateManager,
             PopStateListener {
 
-        private final JsonObject emptyStateObject = Json.createObject();
+        private final Map emptyStateObject = null;
         private Navigator navigator;
         private String state = null;
         private final String urlRoot;
@@ -61,8 +68,10 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
         @Override
         public void setState(final String state) {
             this.state = state;
-            pushState(emptyStateObject, urlRoot + state
-                    + (query != null ? "?" + query : ""));
+            final String pushStateUrl = urlRoot + "/" + state
+                    + (query != null ? "?" + query : "");
+
+            pushState(emptyStateObject, pushStateUrl);
         }
 
         @Override
@@ -84,12 +93,12 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
                 } else {
                     Logger.getLogger(getClass().getName()).warning(
                             "Could not parse a proper state string: "
-                                    + "Page was null");
+                            + "Page was null");
                 }
             } else {
                 Logger.getLogger(getClass().getName()).warning(
                         "Could not parse a proper state string: "
-                                + "UI was null");
+                        + "UI was null");
             }
             return "";
         }
@@ -99,13 +108,16 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
             if (!path.startsWith(urlRoot)) {
                 Logger.getLogger(getClass().getName()).warning(
                         "URI " + uri + " doesn't start with the urlRoot "
-                                + urlRoot);
+                        + urlRoot);
                 return "";
             }
 
-            final String state = path.substring(urlRoot.length());
+            String parsedState = path.substring(urlRoot.length());
+            if (parsedState.startsWith("/")) {
+                parsedState = parsedState.substring(1);
+            }
             query = uri.getQuery();
-            return state;
+            return parsedState;
         }
     }
 
@@ -114,6 +126,7 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
      * selected browser history entry
      */
     public class PopStateEvent {
+
         private Map<String, String> map = null;
         private final JsonObject json;
         private final String stringAddress;
@@ -127,6 +140,8 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
         /**
          * Returns the state data as an {@link JsonObject}. Never
          * <code>null</code>.
+         * 
+         * @return The state object as JsonObject
          */
         public JsonObject getStateAsJson() {
             return json;
@@ -134,7 +149,9 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
 
         /**
          * Returns the state data as an <strong>unmodifiable</strong>
-         * {@link Map Map<String, String>}. Never <code>null</code>.
+         * {@link Map Map}. Never <code>null</code>.
+         * 
+         * @return the state object
          */
         public Map<String, String> getStateAsMap() {
             if (map == null) {
@@ -158,7 +175,7 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
         }
 
         /**
-         * Returns the {@link HistoryExtension} instance from which this event
+         * @return the {@link HistoryExtension} instance from which this event
          * was fired.
          */
         public HistoryExtension getSource() {
@@ -174,6 +191,8 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
          * properly updated on a state push/replace/pop event, and therefore
          * will probably not return the correct value (at least in Vaadin
          * 7.1.10).
+         * 
+         * @return the address
          */
         public URI getAddress() {
             if (address == null) {
@@ -190,18 +209,18 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
     /**
      * An interface that allows external code to listen to browser history
      * changes.
-     * 
+     *
      * @see HistoryExtension#addPopStateListener(PopStateListener)
      * @see HistoryExtension#removePopStateListener(PopStateListener)
      */
     public static interface PopStateListener {
+
         /**
          * A state was popped off the browser's history stack
-         * 
-         * @param event
-         *            The event object describing the application state. Will be
-         *            <code>null</code> if no state object was explicitly given
-         *            for a particular history entry.
+         *
+         * @param event The event object describing the application state. Will
+         * be <code>null</code> if no state object was explicitly given for a
+         * particular history entry.
          * @see HistoryExtension#pushState(JsonObject, String)
          * @see HistoryExtension#pushState(Map, String)
          */
@@ -214,21 +233,24 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
      * <p>
      * <em>Note:</em> if an ErrorEvent is not {@link #cancel() cancelled},
      * {@link HistoryExtension} will raise a runtime exception.
-     * 
+     *
      * @see #cancel()
      * @see HistoryExtension#addErrorListener(ErrorListener)
      */
     public static class ErrorEvent {
 
-        /** An enum describing the type of error that occurred */
+        /**
+         * An enum describing the type of error that occurred
+         */
         public enum Type {
             /**
              * HTML 5 history functionality is unsupported by the user's
              * browser.
              */
             UNSUPPORTED,
-
-            /** A client-side error occurred when trying to execute the command. */
+            /**
+             * A client-side error occurred when trying to execute the command.
+             */
             METHOD_INVOKE
         }
 
@@ -247,17 +269,23 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
             this.stringAddress = address;
         }
 
-        /** Returns the type of error that occurred */
+        /**
+         * @return the type of error that occurred
+         */
         public Type getType() {
             return type;
         }
 
-        /** The name of the error that occurred, as given by the browser. */
+        /**
+         * @return The name of the error that occurred, as given by the browser.
+         */
         public String getErrorName() {
             return name;
         }
 
-        /** The descriptive message of that error, as given by the browser. */
+        /**
+         * @return The descriptive message of that error, as given by the browser.
+         */
         public String getMessage() {
             return message;
         }
@@ -271,6 +299,8 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
          * properly updated on a state push/replace/pop event, and therefore
          * will probably not return the correct value (at least in Vaadin
          * 7.1.10).
+         * 
+         * @return the address
          */
         public URI getAddress() {
             if (address == null) {
@@ -296,7 +326,7 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
          * <p>
          * All {@link ErrorListener ErrorListeners} still are called, even if an
          * event gets called.
-         * 
+         *
          * @see #isCancelled()
          */
         public void cancel() {
@@ -305,7 +335,8 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
 
         /**
          * Checks whether this error has been cancelled or not.
-         * 
+         *
+         * @return true if cancelled
          * @see #cancel()
          */
         public boolean isCancelled() {
@@ -320,11 +351,12 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
      * The {@link ErrorListener} should call {@link ErrorEvent#cancel()} on an
      * event that has explicitly been dealt with, otherwise
      * {@link HistoryExtension} will throw a {@link RuntimeException}.
-     * 
+     *
      * @see HistoryExtension#addErrorListener(ErrorListener)
      * @see HistoryExtension#removeErrorListener(ErrorListener)
      */
     public static interface ErrorListener {
+
         void onError(ErrorEvent event);
     }
 
@@ -334,7 +366,7 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
     /**
      * A flag that is set <em>asynchronously</em>. It denotes whether the
      * browser supports HTML 5 history manipulation or not.
-     * 
+     *
      * @see ErrorEvent.Type#UNSUPPORTED
      */
     private boolean unsupported = false;
@@ -344,6 +376,9 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
     /**
      * A convenience method to extend a UI with a properly configured
      * {@link HistoryExtension}.
+     * @param ui the UI for which the HistoryExtension should be connected
+     * @param listener a listener to be set for HistoryExtension
+     * @return the HistoryExtension
      */
     public static HistoryExtension extend(final UI ui,
             final PopStateListener listener) {
@@ -356,6 +391,10 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
     /**
      * A convenience method to extend a UI with a properly configured
      * {@link HistoryExtension}.
+     * @param ui the UI for the HistoryExtension should be connected to 
+     * @param popStateListener listener for HistoryExtension
+     * @param errorListener listener for HistoryExtension
+     * @return the configured HistoryExtension
      */
     public static HistoryExtension extend(final UI ui,
             final PopStateListener popStateListener,
@@ -365,7 +404,9 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
         return extension;
     }
 
-    /** Creates a new {@link HistoryExtension} */
+    /**
+     * Creates a new {@link HistoryExtension}
+     */
     public HistoryExtension() {
         addFunction("popstate", new JavaScriptFunction() {
             @Override
@@ -373,9 +414,14 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
                 if (arguments.length() > 0) {
                     try {
                         final String address = arguments.getString(1);
-                        final JsonObject state;
+                        JsonObject state;
                         if (arguments.length() > 0 && !(arguments.get(0) instanceof JsonNull) && arguments.get(0) != null) {
-                            state = arguments.getObject(0);
+                            // state not always object, I assuem this is bug, but on the other hand there is usually no need for state in Vaadin app 
+                            try {
+                                state = arguments.getObject(0);
+                            } catch (Exception e) {
+                                state = null;
+                            }
                         } else {
                             state = null;
                         }
@@ -390,7 +436,7 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
         addFunction("error", new JavaScriptFunction() {
             @Override
             public void call(final JsonArray arguments) throws JsonException {
-                final int errorType = (int)arguments.getNumber(0);
+                final int errorType = (int) arguments.getNumber(0);
                 final ErrorEvent.Type type = ErrorEvent.Type.values()[errorType];
                 final String name = arguments.getString(1);
                 final String message = arguments.getString(2);
@@ -403,7 +449,10 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
         });
     }
 
-    /** Extend a {@link UI} with this {@link HistoryExtension} */
+    /**
+     * Extend a {@link UI} with this {@link HistoryExtension}
+     * @param ui The UI to be extended
+     */
     public void extend(final UI ui) {
         final AbstractClientConnector acc = ui;
         super.extend(acc);
@@ -428,6 +477,7 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
      * its history stack.
      * <p>
      * Negative values go backwards, positive values go forwards.
+     * @param steps the amount of steps browsers should take in the history
      */
     @SuppressWarnings("boxing")
     public void go(final int steps) {
@@ -435,7 +485,7 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
     }
 
     /**
-     * Pushes a state object, represented by a {@link Map Map<String, String>},
+     * Pushes a state object, represented by a {@link Map Map},
      * in the browser's history stack.
      * <p>
      * <em>Note:</em> The state should represent the state of the application as
@@ -445,26 +495,32 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
      * "bar", and perhaps change the url to "/bar".
      * <p>
      * In that case, we would write code similar to the following:
-     * 
-     * <code><pre>
+     *
+     * <pre>
      * Map&lt;String, String&gt; stateMap = new HashMap&lt;String, String&gt;();
      * stateMap.put("userChoice", "bar");
      * extension.pushState(stateMap, "/bar");
-     * </pre></code>
-     * 
-     * @param nextStateMap
-     *            The state representing the <strong>upcoming</strong>
-     *            application state
-     * @param nextUrl
-     *            A URI string of what will be displayed in the browser's
-     *            location bar. Or <code>null</code> if the current URL should
-     *            be used instead
+     * </pre>
+     *
+     * @param nextStateMap The state representing the <strong>upcoming</strong>
+     * application state
+     * @param nextUrl A URI string of what will be displayed in the browser's
+     * location bar. Or <code>null</code> if the current URL should be used
+     * instead
      * @see PopStateListener
      * @see PopStateEvent#getStateAsMap()
      */
     public void pushState(final Map<String, String> nextStateMap,
             final String nextUrl) {
-        callFunction("pushState", nextStateMap, nextUrl);
+        callFunction("pushState", toJson(nextStateMap), nextUrl);
+    }
+    
+    protected String toJson(Map m) {
+        try {
+            return defaultMapper.writeValueAsString(m);
+        } catch (JsonProcessingException ex) {
+            throw new RuntimeException(ex);
+        }
     }
 
     /**
@@ -478,20 +534,18 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
      * "bar", and perhaps change the url to "/bar".
      * <p>
      * In that case, we would write code similar to the following:
-     * 
-     * <code><pre>
+     *
+     * <pre>
      * JSONObject stateJson = new JSONObject();
      * stateJson.put("userChoice", "bar");
      * extension.pushState(stateJson, "/bar");
-     * </pre></code>
-     * 
-     * @param nextStateJson
-     *            The state representing the <strong>upcoming</strong>
-     *            application state
-     * @param nextUrl
-     *            A URI string of what will be displayed in the browser's
-     *            location bar. Or <code>null</code> if the current URL should
-     *            be used instead
+     * </pre>
+     *
+     * @param nextStateJson The state representing the <strong>upcoming</strong>
+     * application state
+     * @param nextUrl A URI string of what will be displayed in the browser's
+     * location bar. Or <code>null</code> if the current URL should be used
+     * instead
      * @see PopStateListener
      * @see PopStateEvent#getStateAsMap()
      */
@@ -509,20 +563,18 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
      * It usually is a good idea to initialize your application with a call to
      * this method, so that your application gets a "proper" state object when
      * the user presses back to this initial state.
-     * 
-     * @param newStateMap
-     *            The state representing the <strong>upcoming</strong>
-     *            application state
-     * @param newUrl
-     *            A URI string of what will be displayed in the browser's
-     *            location bar. Or <code>null</code> if the current URL should
-     *            be used instead
+     *
+     * @param newStateMap The state representing the <strong>upcoming</strong>
+     * application state
+     * @param newUrl A URI string of what will be displayed in the browser's
+     * location bar. Or <code>null</code> if the current URL should be used
+     * instead
      * @see PopStateListener
      * @see PopStateEvent#getStateAsMap()
      */
     public void replaceState(final Map<String, String> newStateMap,
             final String newUrl) {
-        callFunction("replaceState", newStateMap, newUrl);
+        callFunction("replaceState", toJson(newStateMap), newUrl);
     }
 
     /**
@@ -535,14 +587,12 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
      * It usually is a good idea to initialize your application with a call to
      * this method, so that your application gets a "proper" state object when
      * the user presses back to this initial state.
-     * 
-     * @param newStateJson
-     *            The state representing the <strong>upcoming</strong>
-     *            application state
-     * @param newUrl
-     *            A URI string of what will be displayed in the browser's
-     *            location bar. Or <code>null</code> if the current URL should
-     *            be used instead
+     *
+     * @param newStateJson The state representing the <strong>upcoming</strong>
+     * application state
+     * @param newUrl A URI string of what will be displayed in the browser's
+     * location bar. Or <code>null</code> if the current URL should be used
+     * instead
      * @see PopStateListener
      * @see PopStateEvent#getStateAsJson()
      */
@@ -552,9 +602,10 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
 
     /**
      * Adds a {@link PopStateListener}
-     * 
-     * @throws IllegalArgumentException
-     *             if <code>listener</code> is <code>null</code>
+     *
+     * @param listener the listener to be added
+     * @throws IllegalArgumentException if <code>listener</code> is
+     * <code>null</code>
      */
     public void addPopStateListener(final PopStateListener listener)
             throws IllegalArgumentException {
@@ -566,9 +617,10 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
 
     /**
      * Removes a {@link PopStateListener}
-     * 
+     *
+     * @param listener the listener to be removed
      * @return <code>true</code> if the listener was successfully found and
-     *         removed, otherwise <code>false</code>
+     * removed, otherwise <code>false</code>
      */
     public boolean removePopStateListener(final PopStateListener listener) {
         return popListeners.remove(listener);
@@ -576,9 +628,10 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
 
     /**
      * Adds an {@link ErrorListener}
-     * 
-     * @throws IllegalArgumentException
-     *             if <code>listener</code> is <code>null</code>
+     *
+     * @param listener the listener to be added
+     * @throws IllegalArgumentException if <code>listener</code> is
+     * <code>null</code>
      */
     public void addErrorListener(final ErrorListener listener)
             throws IllegalArgumentException {
@@ -590,9 +643,10 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
 
     /**
      * Removes an {@link ErrorListener}
-     * 
+     *
+     * @param listener the listener to be removed
      * @return <code>true</code> if the listener was successfully found and
-     *         removed, otherwise <code>false</code>
+     * removed, otherwise <code>false</code>
      */
     public boolean removeErrorListener(final ErrorListener listener) {
         return errorListeners.remove(listener);
@@ -634,8 +688,8 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
         } else {
             Logger.getLogger(getClass().getName()).warning(
                     "PushState is unsupported by the client "
-                            + "browser. Ignoring RPC call for "
-                            + getClass().getSimpleName() + "." + name);
+                    + "browser. Ignoring RPC call for "
+                    + getClass().getSimpleName() + "." + name);
         }
     }
 
@@ -643,4 +697,75 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
             final String urlRoot) {
         return new NavManager(urlRoot);
     }
+
+    /**
+     * A helper method to configure a "pushState" enabled Navigator for given UI
+     * and ViewDisplay.
+     *
+     * @param ui the UI for which the Navigator should be configured
+     * @param display a ViewDisplay to be used to hold the views
+     */
+    public static void configurePushStateEnabledNavigator(UI ui, ViewDisplay display) {
+        HistoryExtension history = new HistoryExtension();
+        history.extend(ui);
+
+        String contextPath = VaadinServlet.getCurrent().getServletContext()
+                .getContextPath();
+
+        NavigationStateManager pushStateManager = history.createNavigationStateManager(contextPath);
+        new Navigator(ui, pushStateManager, display);
+    }
+
+    /**
+     * A helper method to configure a "pushState" enabled Navigator for given UI
+     * and SingleComponentContainer to be used as view display.
+     *
+     * @param ui the UI for which the Navigator should be configured
+     * @param display a SingleComponentContainer to be used to hold the views
+     */
+    public static void configurePushStateEnabledNavigator(UI ui, SingleComponentContainer display) {
+        HistoryExtension history = new HistoryExtension();
+        history.extend(ui);
+
+        String contextPath = VaadinServlet.getCurrent().getServletContext()
+                .getContextPath();
+
+        final NavigationStateManager pushStateManager = history.createNavigationStateManager(contextPath);
+
+        Navigator navigator = new Navigator(ui, display) {
+            @Override
+            protected void init(UI ui, NavigationStateManager stateManager, ViewDisplay display) {
+                super.init(ui, pushStateManager, display);
+            }
+
+        };
+
+    }
+
+    /**
+     * A helper method to configure a "pushState" enabled Navigator for given UI
+     * and ComponentContainer to be used as view display.
+     *
+     * @param ui the UI for which the Navigator should be configured
+     * @param display a ComponentContainer to be used to hold the views
+     */
+    public static void configurePushStateEnabledNavigator(UI ui, ComponentContainer display) {
+        HistoryExtension history = new HistoryExtension();
+        history.extend(ui);
+
+        String contextPath = VaadinServlet.getCurrent().getServletContext()
+                .getContextPath();
+
+        final NavigationStateManager pushStateManager = history.createNavigationStateManager(contextPath);
+
+        Navigator navigator = new Navigator(ui, display) {
+            @Override
+            protected void init(UI ui, NavigationStateManager stateManager, ViewDisplay display) {
+                super.init(ui, pushStateManager, display);
+            }
+
+        };
+
+    }
+
 }

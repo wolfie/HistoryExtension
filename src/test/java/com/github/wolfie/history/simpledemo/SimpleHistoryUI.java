@@ -5,37 +5,34 @@ import com.github.wolfie.history.HistoryExtension.ErrorListener;
 import com.github.wolfie.history.HistoryExtension.PopStateEvent;
 import com.github.wolfie.history.HistoryExtension.PopStateListener;
 import com.vaadin.annotations.Title;
-import com.vaadin.annotations.VaadinServletConfiguration;
 import com.vaadin.event.ShortcutAction.KeyCode;
 import com.vaadin.event.ShortcutListener;
-import com.vaadin.server.VaadinRequest;
-import com.vaadin.server.VaadinServlet;
 import com.vaadin.ui.*;
 import com.vaadin.ui.Button.ClickEvent;
 
-import javax.servlet.annotation.WebServlet;
 import java.util.HashMap;
 import java.util.Map;
+import org.vaadin.addonhelpers.AbstractTest;
 
 @SuppressWarnings("serial")
 @Title("Simplified HTML5 History Demo")
-public class SimpleHistoryUI extends UI {
+public class SimpleHistoryUI extends AbstractTest {
 
     private static final String DATA_KEY = "data";
-
-    @WebServlet(urlPatterns = { "/SimpleDemo/*" }, asyncSupported = true)
-    @VaadinServletConfiguration(productionMode = false, ui = SimpleHistoryUI.class)
-    public static class Servlet extends VaadinServlet {
-        // default implementation is fine.
-    }
 
     private final VerticalLayout layout = new VerticalLayout();
     private HistoryExtension history;
     private TextField url;
     private TextField stateField;
 
+    private void pushState() {
+        final Map<String, String> stateMap = new HashMap<String, String>();
+        stateMap.put(DATA_KEY, stateField.getValue());
+        history.pushState(stateMap, url.getValue());
+    }
+
     @Override
-    protected void init(final VaadinRequest request) {
+    public Component getTestComponent() {
 
         history = HistoryExtension.extend(this,
 
@@ -61,16 +58,10 @@ public class SimpleHistoryUI extends UI {
          * we want to initialize the history state data with something we can
          * handle in our popstate listener
          */
-//        final Map<String, String> newStateMap = Collections.singletonMap(DATA_KEY, "");
-        final Map<String, String> newStateMap = new HashMap<String, String>();
+        final Map<String, String> newStateMap = new HashMap<String, String>(){};
         newStateMap.put(DATA_KEY, "");
-        final Class<?> componentType = newStateMap.getClass().getComponentType();
-        System.err.println(componentType);
-        System.err.println(componentType);
         history.replaceState(newStateMap, getPage()
                 .getLocation().toString());
-
-        setContent(layout);
 
         layout.addComponent(new Label("Choose some text " + "to store in "
                 + "a state. Then choose a new URL to navigate to. After "
@@ -103,11 +94,6 @@ public class SimpleHistoryUI extends UI {
                 pushState();
             }
         }));
-    }
-
-    private void pushState() {
-        final Map<String, String> stateMap = new HashMap<String, String>();
-        stateMap.put(DATA_KEY, stateField.getValue());
-        history.pushState(stateMap, url.getValue());
+        return layout;
     }
 }
