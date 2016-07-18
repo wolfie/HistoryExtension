@@ -1,6 +1,5 @@
 package com.github.wolfie.history.tabledemo;
 
-import javax.servlet.annotation.WebServlet;
 
 import elemental.json.Json;
 import elemental.json.JsonException;
@@ -11,27 +10,17 @@ import com.github.wolfie.history.HistoryExtension.PopStateEvent;
 import com.github.wolfie.history.HistoryExtension.PopStateListener;
 import com.github.wolfie.history.tabledemo.TableView.TableSelectionListener;
 import com.vaadin.annotations.Title;
-import com.vaadin.annotations.VaadinServletConfiguration;
-import com.vaadin.server.VaadinRequest;
 import com.vaadin.server.VaadinServlet;
 import com.vaadin.ui.Component;
 import com.vaadin.ui.Notification;
 import com.vaadin.ui.TabSheet;
 import com.vaadin.ui.TabSheet.SelectedTabChangeEvent;
 import com.vaadin.ui.TabSheet.SelectedTabChangeListener;
-import com.vaadin.ui.UI;
+import org.vaadin.addonhelpers.AbstractTest;
 
 @SuppressWarnings("serial")
 @Title("Table HTML5 History Demo")
-public class TableHistoryUI extends UI {
-
-    private static final String APP_URL = "/TableDemo";
-
-    @WebServlet(urlPatterns = { APP_URL + "/*" }, asyncSupported = true)
-    @VaadinServletConfiguration(productionMode = false, ui = TableHistoryUI.class)
-    public static class Servlet extends VaadinServlet {
-        // default implementation is fine.
-    }
+public class TableHistoryUI extends AbstractTest {
 
     protected static final String POJO_ID_KEY = "id";
     protected static final String VIEW_KEY = "view";
@@ -124,29 +113,15 @@ public class TableHistoryUI extends UI {
 
     private String contextPath = "";
 
-    @Override
-    protected void init(final VaadinRequest request) {
-        tabsheet.setSizeFull();
-        tabsheet.addTab(tableView, "Table View");
-        tabsheet.addTab(aboutView, "About this Demo");
-        tabsheet.addSelectedTabChangeListener(tabChangeListener);
-        setContent(tabsheet);
-
-        history = HistoryExtension.extend(this, popStateListener);
-        history.addErrorListener(historyErrorListener);
-
-        contextPath = VaadinServlet.getCurrent().getServletContext()
-                .getContextPath();
-
-        // initialize a starting state from URL
-        initStateFromStartingUrl();
-    }
-
     private void initStateFromStartingUrl() {
         boolean wasRedirected = false;
+        String pathparams = getPage().getLocation().getPath()
+                .substring((contextPath + getClass().getName()).length() + 1);
+        if(pathparams.startsWith("/")) {
+            pathparams = pathparams.substring(1);
+        }
 
-        String[] urlParams = getPage().getLocation().getPath()
-                .substring((contextPath + APP_URL).length() + 1).split("/");
+        String[] urlParams = pathparams.split("/");
 
         if (urlParams.length == 1 && urlParams[0].equals("")) {
             // initial starting page, do nothing
@@ -159,11 +134,11 @@ public class TableHistoryUI extends UI {
                 int pojoId = Integer.parseInt(urlParams[1]);
                 tableView.select(pojoId);
             } catch (NumberFormatException e) {
-                getPage().setLocation(contextPath + APP_URL + "/");
+                getPage().setLocation(contextPath + getClass().getName() + "/");
                 wasRedirected = true;
             }
         } else {
-            getPage().setLocation(contextPath + APP_URL + "/");
+            getPage().setLocation(contextPath + getClass().getName() + "/");
             wasRedirected = true;
         }
 
@@ -173,7 +148,7 @@ public class TableHistoryUI extends UI {
     }
 
     private void pushStateHelper(final String nextUrl) {
-        String targetUrl = contextPath + APP_URL + "/" + nextUrl;
+        String targetUrl =  "/" + contextPath + getClass().getName() + "/" + nextUrl;
 
         final String query = getPage().getLocation().getQuery();
         if (query != null) {
@@ -251,5 +226,23 @@ public class TableHistoryUI extends UI {
         } finally {
             applyingSerializedState = false;
         }
+    }
+
+    @Override
+    public Component getTestComponent() {
+        tabsheet.setSizeFull();
+        tabsheet.addTab(tableView, "Table View");
+        tabsheet.addTab(aboutView, "About this Demo");
+        tabsheet.addSelectedTabChangeListener(tabChangeListener);
+
+        history = HistoryExtension.extend(this, popStateListener);
+        history.addErrorListener(historyErrorListener);
+
+        contextPath = VaadinServlet.getCurrent().getServletContext()
+                .getContextPath();
+
+        // initialize a starting state from URL
+        initStateFromStartingUrl();    
+        return tabsheet;
     }
 }
