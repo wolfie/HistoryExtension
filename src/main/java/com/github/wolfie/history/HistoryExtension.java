@@ -1,5 +1,7 @@
 package com.github.wolfie.history;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -28,6 +30,7 @@ import com.vaadin.ui.ComponentContainer;
 import com.vaadin.ui.JavaScriptFunction;
 import com.vaadin.ui.SingleComponentContainer;
 import com.vaadin.ui.UI;
+import java.util.logging.Level;
 
 /**
  * An extension that allows server-side control over the HTML5
@@ -39,11 +42,13 @@ import com.vaadin.ui.UI;
 @SuppressWarnings("serial")
 @JavaScript("historyextension.js")
 public class HistoryExtension extends AbstractJavaScriptExtension {
+    
+    protected final static ObjectMapper defaultMapper = new ObjectMapper();
 
     private final class NavManager implements NavigationStateManager,
             PopStateListener {
 
-        private final JsonObject emptyStateObject = Json.createObject();
+        private final Map emptyStateObject = null;
         private Navigator navigator;
         private String state = null;
         private final String urlRoot;
@@ -491,7 +496,15 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
      */
     public void pushState(final Map<String, String> nextStateMap,
             final String nextUrl) {
-        callFunction("pushState", nextStateMap, nextUrl);
+        callFunction("pushState", toJson(nextStateMap), nextUrl);
+    }
+    
+    protected String toJson(Map m) {
+        try {
+            return defaultMapper.writeValueAsString(m);
+        } catch (JsonProcessingException ex) {
+            throw new RuntimeException(ex);
+        }
     }
 
     /**
@@ -545,7 +558,7 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
      */
     public void replaceState(final Map<String, String> newStateMap,
             final String newUrl) {
-        callFunction("replaceState", newStateMap, newUrl);
+        callFunction("replaceState", toJson(newStateMap), newUrl);
     }
 
     /**

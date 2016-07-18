@@ -58,13 +58,8 @@ public class SimpleHistoryUI extends AbstractTest {
          * we want to initialize the history state data with something we can
          * handle in our popstate listener
          */
-//        final Map<String, String> newStateMap = Collections.singletonMap(DATA_KEY, "");
-        // FIXME, I guess this is a regression in Vaadin, the map don't serialize anymore like this
         final Map<String, String> newStateMap = new HashMap<String, String>(){};
         newStateMap.put(DATA_KEY, "");
-        final Class<?> componentType = newStateMap.getClass().getComponentType();
-        System.err.println(componentType);
-        System.err.println(componentType);
         history.replaceState(newStateMap, getPage()
                 .getLocation().toString());
 

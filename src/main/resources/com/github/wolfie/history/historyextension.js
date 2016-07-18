@@ -27,6 +27,9 @@ window.com_github_wolfie_history_HistoryExtension = function () {
             // Do not pass pushState if already there
             if (window.location.href != window.location.protocol + "//" + window.location.host + url) {
                 // url might be undefined or null, but that's okay.
+                try {
+                    state = JSON.parse(state);
+                } catch(e){}
                 window.history.pushState(state, "", url);
             }
         } catch (e) {
@@ -38,6 +41,9 @@ window.com_github_wolfie_history_HistoryExtension = function () {
     this.replaceState = function (state, url) {
         try {
             // url might be undefined or null, but that's okay.
+                try {
+                    state = JSON.parse(state);
+                } catch(e){}
             window.history.replaceState(state, "", url);
         } catch (e) {
             // error code 1 = error on method invoke

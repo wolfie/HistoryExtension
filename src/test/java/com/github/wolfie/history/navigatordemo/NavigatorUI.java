@@ -9,7 +9,6 @@ import com.vaadin.annotations.Title;
 import com.vaadin.navigator.NavigationStateManager;
 import com.vaadin.navigator.Navigator;
 import com.vaadin.navigator.View;
-import com.vaadin.navigator.ViewChangeListener;
 import com.vaadin.navigator.ViewDisplay;
 import com.vaadin.server.VaadinServlet;
 import com.vaadin.ui.Component;
