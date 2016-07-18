@@ -2,7 +2,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.vaadin.addons</groupId>
     <artifactId>history</artifactId>
-    <version>1.2.0-SNAPSHOT</version>
+    <version>1.2.0-mattipre1</version>
     <name>History</name>
     <packaging>bundle</packaging>
 
@@ -20,7 +20,8 @@
         <url>git://github.com/wolfie/HistoryExtension.git</url>
         <connection>scm:git:git://github.com/wolfie/HistoryExtension.git</connection>
         <developerConnection>scm:git:ssh://git@github.com:/wolfie/HistoryExtensiont.git</developerConnection>
-    </scm>
+      <tag>history-1.2.0-mattipre1</tag>
+  </scm>
 
     <issueManagement>
         <system>GitHub</system>
