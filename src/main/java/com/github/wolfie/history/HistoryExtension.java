@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
-import elemental.json.Json;
 import elemental.json.JsonArray;
 import elemental.json.JsonException;
 import elemental.json.JsonObject;
@@ -30,7 +29,6 @@ import com.vaadin.ui.ComponentContainer;
 import com.vaadin.ui.JavaScriptFunction;
 import com.vaadin.ui.SingleComponentContainer;
 import com.vaadin.ui.UI;
-import java.util.logging.Level;
 
 /**
  * An extension that allows server-side control over the HTML5
@@ -142,6 +140,8 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
         /**
          * Returns the state data as an {@link JsonObject}. Never
          * <code>null</code>.
+         * 
+         * @return The state object as JsonObject
          */
         public JsonObject getStateAsJson() {
             return json;
@@ -149,7 +149,9 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
 
         /**
          * Returns the state data as an <strong>unmodifiable</strong>
-         * {@link Map Map<String, String>}. Never <code>null</code>.
+         * {@link Map Map}. Never <code>null</code>.
+         * 
+         * @return the state object
          */
         public Map<String, String> getStateAsMap() {
             if (map == null) {
@@ -173,7 +175,7 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
         }
 
         /**
-         * Returns the {@link HistoryExtension} instance from which this event
+         * @return the {@link HistoryExtension} instance from which this event
          * was fired.
          */
         public HistoryExtension getSource() {
@@ -189,6 +191,8 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
          * properly updated on a state push/replace/pop event, and therefore
          * will probably not return the correct value (at least in Vaadin
          * 7.1.10).
+         * 
+         * @return the address
          */
         public URI getAddress() {
             if (address == null) {
@@ -266,21 +270,21 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
         }
 
         /**
-         * Returns the type of error that occurred
+         * @return the type of error that occurred
          */
         public Type getType() {
             return type;
         }
 
         /**
-         * The name of the error that occurred, as given by the browser.
+         * @return The name of the error that occurred, as given by the browser.
          */
         public String getErrorName() {
             return name;
         }
 
         /**
-         * The descriptive message of that error, as given by the browser.
+         * @return The descriptive message of that error, as given by the browser.
          */
         public String getMessage() {
             return message;
@@ -295,6 +299,8 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
          * properly updated on a state push/replace/pop event, and therefore
          * will probably not return the correct value (at least in Vaadin
          * 7.1.10).
+         * 
+         * @return the address
          */
         public URI getAddress() {
             if (address == null) {
@@ -330,6 +336,7 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
         /**
          * Checks whether this error has been cancelled or not.
          *
+         * @return true if cancelled
          * @see #cancel()
          */
         public boolean isCancelled() {
@@ -369,6 +376,9 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
     /**
      * A convenience method to extend a UI with a properly configured
      * {@link HistoryExtension}.
+     * @param ui the UI for which the HistoryExtension should be connected
+     * @param listener a listener to be set for HistoryExtension
+     * @return the HistoryExtension
      */
     public static HistoryExtension extend(final UI ui,
             final PopStateListener listener) {
@@ -381,6 +391,10 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
     /**
      * A convenience method to extend a UI with a properly configured
      * {@link HistoryExtension}.
+     * @param ui the UI for the HistoryExtension should be connected to 
+     * @param popStateListener listener for HistoryExtension
+     * @param errorListener listener for HistoryExtension
+     * @return the configured HistoryExtension
      */
     public static HistoryExtension extend(final UI ui,
             final PopStateListener popStateListener,
@@ -437,6 +451,7 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
 
     /**
      * Extend a {@link UI} with this {@link HistoryExtension}
+     * @param ui The UI to be extended
      */
     public void extend(final UI ui) {
         final AbstractClientConnector acc = ui;
@@ -462,6 +477,7 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
      * its history stack.
      * <p>
      * Negative values go backwards, positive values go forwards.
+     * @param steps the amount of steps browsers should take in the history
      */
     @SuppressWarnings("boxing")
     public void go(final int steps) {
@@ -469,7 +485,7 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
     }
 
     /**
-     * Pushes a state object, represented by a {@link Map Map<String, String>},
+     * Pushes a state object, represented by a {@link Map Map},
      * in the browser's history stack.
      * <p>
      * <em>Note:</em> The state should represent the state of the application as
@@ -480,11 +496,11 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
      * <p>
      * In that case, we would write code similar to the following:
      *
-     * <code><pre>
+     * <pre>
      * Map&lt;String, String&gt; stateMap = new HashMap&lt;String, String&gt;();
      * stateMap.put("userChoice", "bar");
      * extension.pushState(stateMap, "/bar");
-     * </pre></code>
+     * </pre>
      *
      * @param nextStateMap The state representing the <strong>upcoming</strong>
      * application state
@@ -519,11 +535,11 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
      * <p>
      * In that case, we would write code similar to the following:
      *
-     * <code><pre>
+     * <pre>
      * JSONObject stateJson = new JSONObject();
      * stateJson.put("userChoice", "bar");
      * extension.pushState(stateJson, "/bar");
-     * </pre></code>
+     * </pre>
      *
      * @param nextStateJson The state representing the <strong>upcoming</strong>
      * application state
@@ -587,6 +603,7 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
     /**
      * Adds a {@link PopStateListener}
      *
+     * @param listener the listener to be added
      * @throws IllegalArgumentException if <code>listener</code> is
      * <code>null</code>
      */
@@ -601,6 +618,7 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
     /**
      * Removes a {@link PopStateListener}
      *
+     * @param listener the listener to be removed
      * @return <code>true</code> if the listener was successfully found and
      * removed, otherwise <code>false</code>
      */
@@ -611,6 +629,7 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
     /**
      * Adds an {@link ErrorListener}
      *
+     * @param listener the listener to be added
      * @throws IllegalArgumentException if <code>listener</code> is
      * <code>null</code>
      */
@@ -625,6 +644,7 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
     /**
      * Removes an {@link ErrorListener}
      *
+     * @param listener the listener to be removed
      * @return <code>true</code> if the listener was successfully found and
      * removed, otherwise <code>false</code>
      */
@@ -682,8 +702,8 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
      * A helper method to configure a "pushState" enabled Navigator for given UI
      * and ViewDisplay.
      *
-     * @param ui
-     * @param display
+     * @param ui the UI for which the Navigator should be configured
+     * @param display a ViewDisplay to be used to hold the views
      */
     public static void configurePushStateEnabledNavigator(UI ui, ViewDisplay display) {
         HistoryExtension history = new HistoryExtension();
@@ -700,8 +720,8 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
      * A helper method to configure a "pushState" enabled Navigator for given UI
      * and SingleComponentContainer to be used as view display.
      *
-     * @param ui
-     * @param display
+     * @param ui the UI for which the Navigator should be configured
+     * @param display a SingleComponentContainer to be used to hold the views
      */
     public static void configurePushStateEnabledNavigator(UI ui, SingleComponentContainer display) {
         HistoryExtension history = new HistoryExtension();
@@ -726,8 +746,8 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
      * A helper method to configure a "pushState" enabled Navigator for given UI
      * and ComponentContainer to be used as view display.
      *
-     * @param ui
-     * @param display
+     * @param ui the UI for which the Navigator should be configured
+     * @param display a ComponentContainer to be used to hold the views
      */
     public static void configurePushStateEnabledNavigator(UI ui, ComponentContainer display) {
         HistoryExtension history = new HistoryExtension();
