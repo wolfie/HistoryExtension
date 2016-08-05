@@ -15,6 +15,7 @@ Example usage:
       }
     }));
 
-For complete demos, check out [simpledemo][sdlink] and [tabledemo][tdlink]
-[sdlink]: https://github.com/wolfie/HistoryExtension/tree/master/src/com/github/wolfie/history/simpledemo
-[tdlink]: https://github.com/wolfie/HistoryExtension/tree/master/src/com/github/wolfie/history/tabledemo
+For complete demos, check out [simpledemo][sdlink], [tabledemo][tdlink] and [navigatordemo][ndlink]
+[sdlink]: https://github.com/wolfie/HistoryExtension/tree/master/src/test/java/com/github/wolfie/history/simpledemo
+[tdlink]: https://github.com/wolfie/HistoryExtension/tree/master/src/test/java/com/github/wolfie/history/tabledemo
+[ndlink]: https://github.com/wolfie/HistoryExtension/tree/master/src/test/java/com/github/wolfie/history/navigatordemo
