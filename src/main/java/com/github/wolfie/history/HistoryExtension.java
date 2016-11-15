@@ -14,6 +14,8 @@ import java.util.logging.Logger;
 import elemental.json.JsonArray;
 import elemental.json.JsonException;
 import elemental.json.JsonObject;
+import elemental.json.JsonValue;
+import elemental.json.impl.JsonUtil;
 import elemental.json.JsonNull;
 
 import com.github.wolfie.history.HistoryExtension.ErrorEvent.Type;
@@ -23,7 +25,6 @@ import com.vaadin.navigator.Navigator;
 import com.vaadin.navigator.ViewDisplay;
 import com.vaadin.server.AbstractClientConnector;
 import com.vaadin.server.AbstractJavaScriptExtension;
-import com.vaadin.server.Page;
 import com.vaadin.server.VaadinServlet;
 import com.vaadin.ui.ComponentContainer;
 import com.vaadin.ui.JavaScriptFunction;
@@ -42,84 +43,8 @@ import com.vaadin.ui.UI;
 public class HistoryExtension extends AbstractJavaScriptExtension {
     
     protected final static ObjectMapper defaultMapper = new ObjectMapper();
-
-    private final class NavManager implements NavigationStateManager,
-            PopStateListener {
-
-        private final Map emptyStateObject = null;
-        private Navigator navigator;
-        private String state = null;
-        private final String urlRoot;
-        private String query;
-
-        public NavManager(final String urlRoot) {
-            this.urlRoot = urlRoot;
-            addPopStateListener(this);
-        }
-
-        @Override
-        public String getState() {
-            if (state == null) {
-                state = parseStateFrom(navigator.getUI());
-            }
-            return state;
-        }
-
-        @Override
-        public void setState(final String state) {
-            this.state = state;
-            final String pushStateUrl = urlRoot + "/" + state
-                    + (query != null ? "?" + query : "");
-
-            pushState(emptyStateObject, pushStateUrl);
-        }
-
-        @Override
-        public void setNavigator(final Navigator navigator) {
-            this.navigator = navigator;
-        }
-
-        @Override
-        public void popState(final PopStateEvent event) {
-            state = parseStateFrom(event.getAddress());
-            navigator.navigateTo(state);
-        }
-
-        private String parseStateFrom(final UI ui) {
-            if (ui != null) {
-                final Page page = ui.getPage();
-                if (page != null) {
-                    return parseStateFrom(page.getLocation());
-                } else {
-                    Logger.getLogger(getClass().getName()).warning(
-                            "Could not parse a proper state string: "
-                            + "Page was null");
-                }
-            } else {
-                Logger.getLogger(getClass().getName()).warning(
-                        "Could not parse a proper state string: "
-                        + "UI was null");
-            }
-            return "";
-        }
-
-        private String parseStateFrom(final URI uri) {
-            final String path = uri.getPath();
-            if (!path.startsWith(urlRoot)) {
-                Logger.getLogger(getClass().getName()).warning(
-                        "URI " + uri + " doesn't start with the urlRoot "
-                        + urlRoot);
-                return "";
-            }
-
-            String parsedState = path.substring(urlRoot.length());
-            if (parsedState.startsWith("/")) {
-                parsedState = parsedState.substring(1);
-            }
-            query = uri.getQuery();
-            return parsedState;
-        }
-    }
+    
+    private String lastAddress;
 
     /**
      * An event class that carries application state data for the currently
@@ -371,8 +296,6 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
      */
     private boolean unsupported = false;
 
-    private String urlRoot;
-
     /**
      * A convenience method to extend a UI with a properly configured
      * {@link HistoryExtension}.
@@ -512,7 +435,14 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
      */
     public void pushState(final Map<String, String> nextStateMap,
             final String nextUrl) {
-        callFunction("pushState", toJson(nextStateMap), nextUrl);
+        String jsonStateString = toJson(nextStateMap);
+        callFunction("pushState", jsonStateString, nextUrl);
+        fireListeners(toJsonObject(jsonStateString), nextUrl);
+    }
+    
+    protected JsonObject toJsonObject(String json) {
+        JsonValue jsonStateValue = JsonUtil.parse(json);
+        return jsonStateValue instanceof JsonObject ? (JsonObject) jsonStateValue : null;
     }
     
     protected String toJson(Map m) {
@@ -551,6 +481,7 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
      */
     public void pushState(final JsonObject nextStateJson, final String nextUrl) {
         callFunction("pushState", nextStateJson, nextUrl);
+        fireListeners(nextStateJson, nextUrl);
     }
 
     /**
@@ -574,7 +505,9 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
      */
     public void replaceState(final Map<String, String> newStateMap,
             final String newUrl) {
-        callFunction("replaceState", toJson(newStateMap), newUrl);
+        String jsonStateString = toJson(newStateMap);
+        callFunction("replaceState", jsonStateString, newUrl);
+        fireListeners(toJsonObject(jsonStateString), newUrl);
     }
 
     /**
@@ -598,6 +531,7 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
      */
     public void replaceState(final JsonObject newStateJson, final String newUrl) {
         callFunction("replaceState", newStateJson, newUrl);
+        fireListeners(newStateJson, newUrl);
     }
 
     /**
@@ -653,6 +587,11 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
     }
 
     private void fireListeners(final JsonObject state, final String address) {
+        // this is assumes changing addresses!
+        if (address.equals(lastAddress)) {
+            return;
+        }
+        lastAddress = address;
         final PopStateEvent event = new PopStateEvent(state, address);
         for (final PopStateListener listener : popListeners) {
             listener.popState(event);
@@ -695,7 +634,7 @@ public class HistoryExtension extends AbstractJavaScriptExtension {
 
     public NavigationStateManager createNavigationStateManager(
             final String urlRoot) {
-        return new NavManager(urlRoot);
+        return new NavManager(this, urlRoot);
     }
 
     /**
